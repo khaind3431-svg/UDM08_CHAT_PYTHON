@@ -50,7 +50,7 @@ class TestPrivateChat(unittest.TestCase):
 
     def test_send_private_success(self):
         result = self.private_chat.send_private(
-            sender="Hien",
+            sender="Anh",
             receiver="Tuan",
             message="Xin chao Tuan"
         )
@@ -58,12 +58,12 @@ class TestPrivateChat(unittest.TestCase):
         self.assertTrue(result)
         self.assertEqual(
             self.tuan_socket.sent_data,
-            b"PRIVATE|Hien|Xin chao Tuan\n"
+            b"PRIVATE|Anh|Xin chao Tuan\n"
         )
 
     def test_receiver_not_online(self):
         result = self.private_chat.send_private(
-            sender="Hien",
+            sender="Anh",
             receiver="KhongTonTai",
             message="Hello"
         )
@@ -74,7 +74,7 @@ class TestPrivateChat(unittest.TestCase):
         self.tuan_socket.should_fail = True
 
         result = self.private_chat.send_private(
-            sender="Hien",
+            sender="Anh",
             receiver="Tuan",
             message="Hello"
         )
