@@ -9,7 +9,7 @@ class ClientNetwork:
         self.buffer_size = 4096
         self.encoding = "utf-8"
         
-        # Callback để đẩy dữ liệu cho người làm GUI (nếu họ truyền vào)
+        
         self.update_gui_callback = update_gui_callback 
         
         self.client_socket = None
