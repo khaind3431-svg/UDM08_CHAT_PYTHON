@@ -56,25 +56,46 @@
     });
   }
 
-  // ---- Forward modal ----
+  // ---- Forward modal: mở/đóng ----
+  const forwardModal = document.querySelector('.modal-backdrop');
+
   document.querySelectorAll('[data-action="forward"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const modal = document.querySelector('.modal-backdrop');
-      if (modal) modal.style.display = 'flex';
+      if (forwardModal) forwardModal.style.display = 'flex';
     });
   });
 
   document.querySelectorAll('[data-action="close-modal"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const modal = document.querySelector('.modal-backdrop');
-      if (modal) modal.style.display = 'none';
+      if (forwardModal) forwardModal.style.display = 'none';
     });
   });
 
-  // ---- Contact selection highlight ----
-  document.querySelectorAll('.contact-item').forEach((item) => {
+  // Nút xác nhận "Chuyển tiếp" trong modal — bấm là đóng modal lại
+  // (phần gửi thật cho ai sẽ do JS nối mạng xử lý sau, không phải ở đây).
+  const forwardConfirmBtn = document.getElementById('forward-confirm-btn');
+  if (forwardConfirmBtn) {
+    forwardConfirmBtn.addEventListener('click', () => {
+      if (forwardModal) forwardModal.style.display = 'none';
+    });
+  }
+
+  // Chọn người nhận trong modal Forward — chỉ tô sáng phần tử được
+  // bấm bên TRONG modal, không đụng gì tới danh sách liên hệ ở sidebar
+  // (2 khu vực này tình cờ dùng chung class .contact-item).
+  document.querySelectorAll('.forward-list .contact-item').forEach((item) => {
     item.addEventListener('click', () => {
-      document.querySelectorAll('.contact-item').forEach((i) => i.classList.remove('active'));
+      document.querySelectorAll('.forward-list .contact-item').forEach((i) => i.classList.remove('selected'));
+      item.classList.add('selected');
+    });
+  });
+
+  // ---- Chọn liên hệ ở sidebar (tô active + xoá badge chưa đọc) ----
+  // Chỉ áp dụng cho .contact-item nằm trong sidebar, KHÔNG áp dụng cho
+  // .contact-item bên trong modal Forward.
+  document.querySelectorAll('.sidebar .contact-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar .contact-item').forEach((i) => i.classList.remove('active'));
       item.classList.add('active');
       item.classList.remove('unread');
       const badge = item.querySelector('.unread-badge');
