@@ -27,6 +27,8 @@ class DBManager:
     def get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
+        # Ensure SQLite enforces foreign key constraints on this connection
+        conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
     def init_db(self) -> None:
@@ -57,13 +59,16 @@ class DBManager:
                     reply_to_id INTEGER,
                     action TEXT NOT NULL,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (reply_to_id) REFERENCES messages(msg_id)
+                    FOREIGN KEY (reply_to_id) REFERENCES messages(msg_id),
+                    FOREIGN KEY (sender_id) REFERENCES users(user_id),
+                    FOREIGN KEY (receiver_id) REFERENCES users(user_id)
                 )
                 """
             )
 
             conn.commit()
             self._ensure_user_table_columns(conn)
+            self._ensure_messages_foreign_keys(conn)
 
     def _ensure_user_table_columns(self, conn: sqlite3.Connection) -> None:
         existing_columns = {
@@ -76,6 +81,62 @@ class DBManager:
             conn.execute("ALTER TABLE users ADD COLUMN password_salt TEXT")
         if "role" not in existing_columns:
             conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+        conn.commit()
+
+    def _ensure_messages_foreign_keys(self, conn: sqlite3.Connection) -> None:
+        """Ensure messages table has foreign keys to users(user_id) and self-referential reply_to_id.
+
+        If the existing table lacks the FK constraints, recreate the table and copy data.
+        """
+        # Check whether messages table exists
+        tbl = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='messages'").fetchone()
+        if not tbl:
+            return
+
+        fk_rows = conn.execute("PRAGMA foreign_key_list(messages)").fetchall()
+        # build set of (from_column, referenced_table)
+        existing_fks = {(r[3], r[2]) for r in fk_rows}
+
+        need_sender = ("sender_id", "users") not in existing_fks
+        need_receiver = ("receiver_id", "users") not in existing_fks
+        need_reply = ("reply_to_id", "messages") not in existing_fks
+
+        if not (need_sender or need_receiver or need_reply):
+            return
+
+        cursor = conn.cursor()
+        # Temporarily disable FK checks to perform migration
+        cursor.execute("PRAGMA foreign_keys = OFF")
+        cursor.execute("ALTER TABLE messages RENAME TO messages_old")
+
+        cursor.execute(
+            """
+            CREATE TABLE messages (
+                msg_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender_id TEXT NOT NULL,
+                receiver_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                reply_to_id INTEGER,
+                action TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (reply_to_id) REFERENCES messages(msg_id),
+                FOREIGN KEY (sender_id) REFERENCES users(user_id),
+                FOREIGN KEY (receiver_id) REFERENCES users(user_id)
+            )
+            """
+        )
+
+        # Copy data from old table (if columns match)
+        cursor.execute(
+            """
+            INSERT INTO messages (msg_id, sender_id, receiver_id, content, reply_to_id, action, timestamp)
+            SELECT msg_id, sender_id, receiver_id, content, reply_to_id, action, timestamp FROM messages_old
+            """
+        )
+
+        cursor.execute("DROP TABLE messages_old")
+        # Re-enable FK checks
+        cursor.execute("PRAGMA foreign_keys = ON")
         conn.commit()
 
     def save_user(self, user_id: str, username: str, avatar_path: Optional[str] = None) -> None:
