@@ -1,118 +1,79 @@
-# UDM08_CHAT_PYTHON
+# UDM_08 — Chat TCP Client-Server
 
-> Ứng dụng Chat Client--Server sử dụng TCP Socket bằng Python (GUI)
+Ứng dụng chat client-server qua TCP, toàn bộ thao tác thực hiện bằng GUI.
 
-## 1. Giới thiệu
+## 🛠 Công nghệ sử dụng
 
-Đây là đồ án môn **Lập trình mạng** xây dựng ứng dụng chat theo mô hình
-**Client -- Server**. Ứng dụng sử dụng **TCP Socket**, giao diện
-**Tkinter**, giao thức **JSON** và **SQLite** để lưu lịch sử trò chuyện.
-
-### Chức năng chính
-
--   Đăng nhập
--   Chat thời gian thực
--   Chat riêng
--   Danh sách người dùng Online
--   Reply tin nhắn
--   Forward tin nhắn
--   Emoji
--   Lưu lịch sử trò chuyện bằng SQLite
-
-------------------------------------------------------------------------
-
-# 2. Công nghệ sử dụng
-
-  Thành phần    Công nghệ
-  ------------- ------------
-  Ngôn ngữ      Python 3
-  Giao diện     Tkinter
-  Network       TCP Socket
-  Database      SQLite
-  Data Format   JSON
-  Đa luồng      threading
-
-------------------------------------------------------------------------
-
-# 3. Kiến trúc hệ thống
-
-``` text
-Client GUI
-     │
- TCP Socket
-     │
-Server
-     │
-Message Router
-     │
-Database (SQLite)
-```
-
-------------------------------------------------------------------------
-
-# 4. Cấu trúc Project
+- **Giao tiếp real-time:** Python `socket` (TCP), threading để xử lý nhiều client
+- **Backend:** Python (kiến trúc Controller – Service – Repository)
+- **Frontend:** HTML/CSS/JS, nhúng vào app desktop qua **Eel**
+- **Database:** MySQL (dữ liệu user, message, contact có quan hệ rõ ràng, dùng JOIN để lấy tin nhắn kèm người gửi/tin được reply)
+- **Lưu trữ ảnh (avatar + ảnh chat):** Cloudinary (object storage, free tier) — ảnh không lưu trong MySQL, chỉ lưu URL
+- **Đóng gói ứng dụng:** PyInstaller → file `.exe` cài đặt như Discord/Zalo
+- **Deploy server:** VPS (Oracle Cloud / Google Cloud Free Tier), chạy nền bằng `systemd`
 
 ## 📁 Cấu trúc dự án
 
-```
+## 📁 Cấu trúc dự án
+
+```text
 UDM08_CHAT_PYTHON/
 │
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── client_main.py                  # Entry point: khởi động Eel, mở giao diện desktop app
+├── client_main.py                  # Entry point client, kết nối tới SERVER_HOST cố định
+│
+├── config/
+│   ├── server_config.py            # SERVER_HOST, SERVER_PORT (TCP)
+│   ├── db_config.py                # MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB
+│   └── cloudinary_config.py        # CLOUD_NAME, API_KEY, API_SECRET
 │
 ├── database/
-│   ├── schema.sql                  # Tạo bảng: users, messages, contacts, avatars...
-│   └── seed_data.sql               # Dữ liệu mẫu để test
+│   ├── schema.sql                  # users, messages, conversations, contacts (MySQL)
+│   └── seed_data.sql
 │
-├── backend/
+├── backend/                        # Chạy trên VPS
 │   ├── __init__.py
-│   ├── server_main.py              # Entry point: khởi động TCP server, accept connections
-│   ├── message_protocol.py         # Định nghĩa format gói tin request/response (JSON)
+│   ├── server_main.py              # Khởi động TCP server, accept connections
+│   ├── message_protocol.py         # Format gói tin request/response (JSON)
 │   │
-│   ├── controllers/                # Nhận request từ client, gọi service tương ứng
-│   │   ├── __init__.py
-│   │   ├── auth_controller.py      # login, register, logout
-│   │   ├── chat_controller.py      # send message, reply, forward
-│   │   ├── contact_controller.py   # danh sách liên hệ, tìm kiếm user
-│   │   └── profile_controller.py   # xem/cập nhật thông tin cá nhân, avatar
+│   ├── controllers/
+│   │   ├── auth_controller.py
+│   │   ├── chat_controller.py
+│   │   ├── contact_controller.py
+│   │   └── profile_controller.py
 │   │
-│   ├── services/                   # Business logic, xử lý nghiệp vụ
-│   │   ├── __init__.py
-│   │   ├── auth_service.py         # kiểm tra đăng nhập, hash password, tạo session
-│   │   ├── chat_service.py         # xử lý logic reply/forward, broadcast tin nhắn
-│   │   ├── contact_service.py      # logic liên hệ, trạng thái online/offline
-│   │   └── profile_service.py      # logic cập nhật hồ sơ, upload avatar
+│   ├── services/
+│   │   ├── auth_service.py
+│   │   ├── chat_service.py         # Reply/forward, broadcast tin nhắn
+│   │   ├── contact_service.py
+│   │   ├── profile_service.py
+│   │   └── media_service.py        # Upload ảnh lên Cloudinary, trả về URL
 │   │
-│   ├── repositories/               # Tầng thao tác trực tiếp với database
-│   │   ├── __init__.py
-│   │   ├── user_repository.py      # CRUD bảng users
-│   │   ├── message_repository.py   # CRUD bảng messages (reply_to_id, forward_from_id)
-│   │   └── contact_repository.py   # CRUD bảng contacts
+│   ├── repositories/
+│   │   ├── user_repository.py
+│   │   ├── message_repository.py
+│   │   └── contact_repository.py
 │   │
-│   ├── models/                     # Entity/dataclass tương ứng bảng SQL
-│   │   ├── __init__.py
+│   ├── models/
 │   │   ├── user.py
 │   │   ├── message.py
 │   │   └── contact.py
 │   │
 │   ├── core/
-│   │   ├── __init__.py
-│   │   ├── db_connection.py        # Singleton kết nối SQLite/MySQL
-│   │   ├── client_handler.py       # Thread xử lý từng client, đọc socket → gọi controller
-│   │   ├── tcp_client_bridge.py    # Cầu nối giữa frontend và TCP socket (dùng Eel)
-│   │   └── session_manager.py      # Quản lý các session/client đang kết nối
+│   │   ├── db_connection.py        # Kết nối MySQL
+│   │   ├── client_handler.py       # Thread xử lý từng client qua TCP
+│   │   └── session_manager.py
 │   │
 │   └── utils/
-│       ├── __init__.py
-│       ├── hash_utils.py           # Hash mật khẩu (bcrypt/hashlib)
-│       └── validators.py           # Validate dữ liệu đầu vào
+│       ├── hash_utils.py
+│       └── validators.py
 │
-├── frontend/                       # Toàn bộ giao diện GUI (chạy trong Eel/webview)
-│   ├── index.html                  # Trang login
-│   ├── chat.html                   # Trang chat chính
-│   ├── profile.html                # Trang thông tin cá nhân người dùng
+├── frontend/                       # Giao diện GUI (Eel/webview)
+│   ├── index.html                  # Login
+│   ├── chat.html                   # Chat chính
+│   ├── profile.html                # Thông tin cá nhân
 │   │
 │   ├── css/
 │   │   ├── login.css
@@ -121,168 +82,43 @@ UDM08_CHAT_PYTHON/
 │   │   ├── profile.css
 │   │   └── dark-mode.css
 │   │
-│   ├── js/
-│   │   ├── login.js
-│   │   ├── chat.js                 # Gửi/nhận tin nhắn, reply, forward
-│   │   ├── sidebar.js              # Danh sách liên hệ, khu vực tin nhắn
-│   │   ├── emoji-picker.js
-│   │   ├── profile.js
-│   │   ├── dark-mode.js
-│   │   └── eel-bridge.js           # Gọi các hàm Python qua eel.xxx()
-│   │
-│   └── assets/
-│       ├── avatars/                # Avatar mặc định + avatar người dùng upload
-│       ├── emojis/
-│       └── icons/
+│   └── js/
+│       ├── login.js
+│       ├── chat.js                 # Gửi/nhận, reply, forward
+│       ├── sidebar.js
+│       ├── emoji-picker.js
+│       ├── profile.js
+│       ├── dark-mode.js
+│       └── eel-bridge.js           # Gọi hàm Python qua eel.xxx()
+│
+├── deploy/
+│   ├── server_setup.sh             # Cài Python, MySQL, dependencies trên VPS
+│   └── chatserver.service          # systemd — giữ server chạy nền, tự restart
 │
 ├── build/
-│   └── build_app.py                # Script đóng gói bằng PyInstaller (.exe cài như Discord/Zalo)
+│   └── build_app.py                # PyInstaller đóng gói client thành .exe
 │
 └── docs/
-    ├── architecture.png            # Sơ đồ kiến trúc client-server
-    └── er_diagram.png              # Sơ đồ ER database
+    ├── architecture.png
+    └── er_diagram.png
 ```
 
-------------------------------------------------------------------------
+## 🚀 Cách deploy (mô hình giống Discord/Zalo)
 
-# 5. Mô tả các thư mục
+1. Thuê/tạo 1 VPS (vd: Oracle Cloud Free Tier), cài Python + MySQL bằng `deploy/server_setup.sh`
+2. Chạy `backend/server_main.py` trên VPS, dùng `deploy/chatserver.service` để server tự khởi động lại nếu crash hoặc VPS reboot
+3. Mở port TCP (vd: `5555`) trên firewall VPS
+4. Trong `config/server_config.py` của client, ghi sẵn IP/domain của VPS
+5. Đóng gói client bằng `build/build_app.py` (PyInstaller) → ra file `.exe`
+6. Người dùng chỉ cần tải `.exe` về, mở lên là tự kết nối vào server qua TCP — không cần cài Python, không cần biết địa chỉ server
 
-## client
+## 🖼 Lưu trữ ảnh (avatar + ảnh trong đoạn chat)
 
--   chat_window.py
--   client_handler.py
--   client_manager.py
--   client_network.py
+- Ảnh **không lưu trong MySQL** và **không lưu trực tiếp trên VPS**
+- Luồng xử lý: Client chọn ảnh → gửi qua TCP tới server → server (`media_service.py`) upload ảnh lên **Cloudinary** → nhận về URL công khai → lưu URL đó vào MySQL (`avatar_url` trong bảng `users`, `attachment_url` trong bảng `messages`)
+- Client tải/hiển thị ảnh bằng cách load trực tiếp từ URL Cloudinary (qua HTTP), không cần đi qua TCP server → giảm tải cho server chat
 
-Quản lý giao diện và kết nối từ phía Client.
+## ⚠️ Lưu ý
 
-## server
-
--   server.py
--   broadcaster.py
--   message_router.py
--   online_manager.py
--   private_chat.py
--   server_logger.py
-
-Quản lý toàn bộ Server.
-
-## database
-
-db_manager.py
-
-Lưu lịch sử chat SQLite.
-
-## shared
-
-protocol.py
-
-Định nghĩa giao thức JSON.
-
-## tests
-
-Các bài kiểm thử.
-
-------------------------------------------------------------------------
-
-# 6. Giao thức
-
-Ví dụ:
-
-``` json
-{
- "action":"CHAT",
- "sender":"userA",
- "receiver":"userB",
- "content":"Hello"
-}
-```
-
-------------------------------------------------------------------------
-
-# 7. Hướng dẫn chạy
-
-## Cài đặt
-
-``` bash
-pip install pillow
-```
-
-## Chạy Server
-
-``` bash
-python server/server.py
-```
-
-## Chạy Client
-
-``` bash
-python client/chat_window.py
-```
-
-------------------------------------------------------------------------
-
-# 8. Kiểm thử
-
-``` bash
-python test_my_module.py
-```
-
-Hoặc
-
-``` bash
-pytest tests
-```
-
-------------------------------------------------------------------------
-
-# 9. Chức năng đã hoàn thành
-
--   GUI
--   TCP Socket
--   JSON Protocol
--   SQLite
--   Private Chat
--   Online List
--   Logging
--   Reply
--   Forward
--   Emoji
-
-------------------------------------------------------------------------
-
-# 10. Hạn chế
-
--   Chưa mã hóa dữ liệu.
--   Chưa gửi file.
--   Chưa hỗ trợ Voice/Video.
-
-------------------------------------------------------------------------
-
-# 11. Hướng phát triển
-
--   Gửi file
--   Mã hóa AES
--   Video Call
--   Cloud Database
--   Mobile Client
-
-------------------------------------------------------------------------
-
-# 12. Thành viên
-
-  MSSV   Họ tên            Công việc
-  ------ ----------------- ------------------------
-  ...    Trần Thanh Hải          Client Handler
-  ...    Phan Triều Cường        GUI
-  ...    Nguyễn Võ Tấn Phát      Client Network
-  ...    Phan Tấn Tài            Protocol + Database
-  ...    Nguyễn Hồ Minh Hiển     Private Chat + Testing
-  ...    Nguyễn Đức Khải         Server Core
-
-------------------------------------------------------------------------
-
-
-# 13. License
-
-MIT License.
+- TCP vẫn là giao thức chính cho toàn bộ chat real-time (đúng yêu cầu đề bài) — Cloudinary/HTTP chỉ dùng riêng cho việc tải ảnh
+- Phần deploy VPS + Cloudinary là mở rộng thêm ngoài yêu cầu tối thiểu của đề — nên xác nhận với giảng viên nếu muốn được tính điểm cộng cho phần này
