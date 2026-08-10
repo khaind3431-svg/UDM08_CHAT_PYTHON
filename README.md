@@ -191,12 +191,12 @@ pytest tests
 
   MSSV   Họ tên            Công việc
   ------ ----------------- ------------------------
-  ...    Thành viên 1      Client Handler
-  ...    Thành viên 2      GUI
-  ...    Thành viên 3      Client Network
-  ...    Thành viên 4      Protocol + Database
-  ...    Thành viên 5      Private Chat + Testing
-  ...    Nguyễn Đức Khải   Server Core
+  ...    Trần Thanh Hải          Client Handler
+  ...    Phan Triều Cường        GUI
+  ...    Nguyễn Võ Tấn Phát      Client Network
+  ...    Phan Tấn Tài            Protocol + Database
+  ...    Nguyễn Hồ Minh Hiển     Private Chat + Testing
+  ...    Nguyễn Đức Khải         Server Core
 
 ------------------------------------------------------------------------
 
