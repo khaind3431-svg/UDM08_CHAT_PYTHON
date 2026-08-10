@@ -52,13 +52,95 @@ Database (SQLite)
 
 # 4. Cấu trúc Project
 
-``` text
-client/
-database/
-server/
-shared/
-tests/
-tools/
+## 📁 Cấu trúc dự án
+
+```
+UDM08_CHAT_PYTHON/
+│
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── client_main.py                  # Entry point: khởi động Eel, mở giao diện desktop app
+│
+├── database/
+│   ├── schema.sql                  # Tạo bảng: users, messages, contacts, avatars...
+│   └── seed_data.sql               # Dữ liệu mẫu để test
+│
+├── backend/
+│   ├── __init__.py
+│   ├── server_main.py              # Entry point: khởi động TCP server, accept connections
+│   ├── message_protocol.py         # Định nghĩa format gói tin request/response (JSON)
+│   │
+│   ├── controllers/                # Nhận request từ client, gọi service tương ứng
+│   │   ├── __init__.py
+│   │   ├── auth_controller.py      # login, register, logout
+│   │   ├── chat_controller.py      # send message, reply, forward
+│   │   ├── contact_controller.py   # danh sách liên hệ, tìm kiếm user
+│   │   └── profile_controller.py   # xem/cập nhật thông tin cá nhân, avatar
+│   │
+│   ├── services/                   # Business logic, xử lý nghiệp vụ
+│   │   ├── __init__.py
+│   │   ├── auth_service.py         # kiểm tra đăng nhập, hash password, tạo session
+│   │   ├── chat_service.py         # xử lý logic reply/forward, broadcast tin nhắn
+│   │   ├── contact_service.py      # logic liên hệ, trạng thái online/offline
+│   │   └── profile_service.py      # logic cập nhật hồ sơ, upload avatar
+│   │
+│   ├── repositories/               # Tầng thao tác trực tiếp với database
+│   │   ├── __init__.py
+│   │   ├── user_repository.py      # CRUD bảng users
+│   │   ├── message_repository.py   # CRUD bảng messages (reply_to_id, forward_from_id)
+│   │   └── contact_repository.py   # CRUD bảng contacts
+│   │
+│   ├── models/                     # Entity/dataclass tương ứng bảng SQL
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   ├── message.py
+│   │   └── contact.py
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── db_connection.py        # Singleton kết nối SQLite/MySQL
+│   │   ├── client_handler.py       # Thread xử lý từng client, đọc socket → gọi controller
+│   │   ├── tcp_client_bridge.py    # Cầu nối giữa frontend và TCP socket (dùng Eel)
+│   │   └── session_manager.py      # Quản lý các session/client đang kết nối
+│   │
+│   └── utils/
+│       ├── __init__.py
+│       ├── hash_utils.py           # Hash mật khẩu (bcrypt/hashlib)
+│       └── validators.py           # Validate dữ liệu đầu vào
+│
+├── frontend/                       # Toàn bộ giao diện GUI (chạy trong Eel/webview)
+│   ├── index.html                  # Trang login
+│   ├── chat.html                   # Trang chat chính
+│   ├── profile.html                # Trang thông tin cá nhân người dùng
+│   │
+│   ├── css/
+│   │   ├── login.css
+│   │   ├── chat.css
+│   │   ├── sidebar.css
+│   │   ├── profile.css
+│   │   └── dark-mode.css
+│   │
+│   ├── js/
+│   │   ├── login.js
+│   │   ├── chat.js                 # Gửi/nhận tin nhắn, reply, forward
+│   │   ├── sidebar.js              # Danh sách liên hệ, khu vực tin nhắn
+│   │   ├── emoji-picker.js
+│   │   ├── profile.js
+│   │   ├── dark-mode.js
+│   │   └── eel-bridge.js           # Gọi các hàm Python qua eel.xxx()
+│   │
+│   └── assets/
+│       ├── avatars/                # Avatar mặc định + avatar người dùng upload
+│       ├── emojis/
+│       └── icons/
+│
+├── build/
+│   └── build_app.py                # Script đóng gói bằng PyInstaller (.exe cài như Discord/Zalo)
+│
+└── docs/
+    ├── architecture.png            # Sơ đồ kiến trúc client-server
+    └── er_diagram.png              # Sơ đồ ER database
 ```
 
 ------------------------------------------------------------------------
