@@ -76,13 +76,13 @@ class ClientNetwork:
 if __name__ == "__main__":
     import threading
     
-    # Khởi tạo class mạng của bạn
+    # Khởi tạo class mạng
     my_network = ClientNetwork(host="127.0.0.1", port=5000)
     
     # Chạy luồng kết nối ngầm
     threading.Thread(target=my_network.connect, daemon=True).start()
     
-    # Vòng lặp liên tục chờ bạn gõ tin nhắn từ bàn phím
+    # Vòng lặp liên tục gõ tin nhắn từ bàn phím
     try:
         while True:
             text_to_send = input()
