@@ -1,0 +1,86 @@
+/* ===========================================================
+   WIRELINE — Design tokens
+   Concept: the chat app IS a TCP socket made visible. The UI
+   borrows the vocabulary of a wired connection — sockets,
+   packets, a pulsing link indicator — instead of generic
+   "bubble app" styling.
+   =========================================================== */
+
+:root {
+  /* ---- Light theme ---- */
+  --bg: #F4F6F9;
+  --bg-elevated: #FFFFFF;
+  --bg-sunken: #EAEEF3;
+  --border: #E1E6ED;
+  --border-strong: #CBD3DE;
+
+  --text: #171A21;
+  --text-muted: #667085;
+  --text-faint: #97A1B0;
+
+  --accent: #14B8A6;         /* signal teal */
+  --accent-strong: #0C8C7E;
+  --accent-soft: rgba(20, 184, 166, 0.12);
+  --accent-contrast: #ffffff;
+
+  --reply: #F5A623;          /* amber — reply / quote marker */
+  --reply-soft: rgba(245, 166, 35, 0.14);
+
+  --online: #22C55E;
+  --danger: #EF4444;
+
+  --bubble-out: #14B8A6;
+  --bubble-out-text: #ffffff;
+  --bubble-in: #FFFFFF;
+  --bubble-in-text: #171A21;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 20px 48px rgba(16, 24, 40, 0.16);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --font-display: 'Sora', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+[data-theme="dark"] {
+  --bg: #0D1016;
+  --bg-elevated: #161A22;
+  --bg-sunken: #10131A;
+  --border: #262C38;
+  --border-strong: #333B4A;
+
+  --text: #E8EBF1;
+  --text-muted: #97A1B5;
+  --text-faint: #5D6577;
+
+  --accent: #2DD4BF;
+  --accent-strong: #14B8A6;
+  --accent-soft: rgba(45, 212, 191, 0.14);
+  --accent-contrast: #052E2A;
+
+  --reply: #F6B93B;
+  --reply-soft: rgba(246, 185, 59, 0.14);
+
+  --online: #34D399;
+  --danger: #F87171;
+
+  --bubble-out: #1E7F72;
+  --bubble-out-text: #F2FBF9;
+  --bubble-in: #1B2029;
+  --bubble-in-text: #E8EBF1;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Smooth theme transition without animating everything on load */
+html.theme-ready, html.theme-ready * {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
