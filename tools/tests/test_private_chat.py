@@ -1,20 +1,19 @@
 import os
 import sys
 import unittest
-...
-import os
-import sys
-import unittest
 
-# Cho Python tìm được config.py và server_logger.py trong thư mục server
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SERVER_DIR = os.path.join(PROJECT_ROOT, "server")
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+)
+
+SERVER_DIR = os.path.join(PROJECT_ROOT, "Code", "server")
 
 if SERVER_DIR not in sys.path:
     sys.path.insert(0, SERVER_DIR)
 
 from private_chat import PrivateChat
-
 
 class FakeSocket:
     def __init__(self):
