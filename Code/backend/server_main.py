@@ -16,6 +16,12 @@ from Code.config.server_config import (
     ACCEPT_TIMEOUT, BACKLOG, BUFFER_SIZE, CLIENT_TIMEOUT,
     ENCODING, HOST, MAX_CLIENTS, PORT,
 )
+from Code.backend.services.auth_service import (
+    authenticate_user, register_user, set_user_status,
+)
+from Code.backend.services.chat_service import (
+    get_or_create_private_conversation, save_message, get_message_brief,
+)
 
 
 class ChatServer:
@@ -53,7 +59,8 @@ class ChatServer:
 
         # username -> socket
         self.online_clients: dict[str, socket.socket] = {}
-
+        # username -> user.id (database)
+        self.user_ids: dict[str, int] = {}
         self.clients_lock = threading.RLock()
         self.threads_lock = threading.Lock()
         self.router = MessageRouter()
@@ -161,43 +168,55 @@ class ChatServer:
                             self._send_text(client_socket, "ERROR|Ban da dang nhap.")
                             continue
 
-                        candidate = routed.content.strip()
-
-                        if not self._valid_username(candidate):
+                        login_username, login_password = self._parse_login(routed.content)
+                        if login_username is None:
                             self._send_text(
                                 client_socket,
-                                "ERROR|Username khong hop le."
+                                "ERROR|LOGIN dung dang: LOGIN|username|password"
                             )
                             continue
 
-                        if not self._register_username(candidate, client_socket):
+                        auth_result = authenticate_user(login_username, login_password)
+                        if not auth_result["ok"]:
+                            self._send_text(client_socket, f"LOGIN_ERR|{auth_result['error']}")
+                            continue
+
+                        if not self._register_username(login_username, client_socket):
                             self._send_text(
                                 client_socket,
-                                "ERROR|Ten dang nhap da ton tai."
+                                "LOGIN_ERR|Tai khoan dang dang nhap noi khac."
                             )
                             continue
 
-                        username = candidate
-                        log(
-                            f"{username} dang nhap tu "
-                            f"{client_address[0]}:{client_address[1]}"
-                        )
+                        username = login_username
+                        self.user_ids[username] = auth_result["user"]["id"]
+                        set_user_status(auth_result["user"]["id"], "online")
+
+                        log(f"{username} dang nhap tu {client_address[0]}:{client_address[1]}")
                         self._send_text(
                             client_socket,
-                            f"SYSTEM|Xin chao {username}!"
+                            f"LOGIN_OK|{username}|{auth_result['user']['full_name']}"
                         )
                         self._send_online_list()
-                        self._broadcast(
-                            "SYSTEM",
-                            f"{username} da tham gia phong chat."
-                        )
+                        self._broadcast("SYSTEM", f"{username} da tham gia phong chat.")
 
-                    # Bat buoc LOGIN truoc cac chuc nang nguoi dung ----------
-                    elif msg_type in {"MESSAGE", "PRIVATE"} and username is None:
-                        self._send_text(
-                            client_socket,
-                            "ERROR|Ban phai LOGIN truoc."
-                        )
+                    # REGISTER ------------------------------------------------
+                    elif msg_type == "REGISTER":
+                        display_name, reg_username, password, confirm = self._parse_register(routed.content)
+                        if reg_username is None:
+                            self._send_text(client_socket, "REGISTER_ERR|Dinh dang khong hop le.")
+                            continue
+
+                        result = register_user(display_name, reg_username, password, confirm)
+                        if result["ok"]:
+                            self._send_text(client_socket, "REGISTER_OK")
+                        else:
+                            self._send_text(client_socket, f"REGISTER_ERR|{result['error']}")
+
+
+                      # Bat buoc LOGIN truoc cac chuc nang nguoi dung ----------
+                    elif msg_type in {"MESSAGE", "PRIVATE", "REPLY", "FORWARD"} and username is None:
+                        self._send_text(client_socket, "ERROR|Ban phai LOGIN truoc.")
 
                     # MESSAGE -----------------------------------------------
                     elif msg_type == "MESSAGE":
@@ -214,8 +233,13 @@ class ChatServer:
                             )
                             continue
 
+                        sender_id = self.user_ids.get(username)
+                        receiver_id = self.user_ids.get(receiver)
+                        if sender_id and receiver_id:
+                            conv_id = get_or_create_private_conversation(sender_id, receiver_id)
+                            save_message(conv_id, sender_id, content)
+
                         if self._send_private(username, receiver, content):
-                            # Echo lai sender de biet gui thanh cong.
                             if receiver != username:
                                 self._send_text(
                                     client_socket,
@@ -225,6 +249,53 @@ class ChatServer:
                             self._send_text(
                                 client_socket,
                                 f"ERROR|Nguoi dung {receiver} khong online."
+                            )
+
+                    # REPLY ---------------------------------------------------
+                    elif msg_type == "REPLY":
+                        reply_to_id, content = self._parse_reply(routed.content)
+                        if reply_to_id is None:
+                            self._send_text(
+                                client_socket,
+                                "ERROR|REPLY dung dang: REPLY|message_id|noi_dung"
+                            )
+                            continue
+
+                        original = get_message_brief(reply_to_id)
+                        who = original["sender_display"] if original else ""
+                        snippet = original["content"] if original else ""
+
+                        log(f"[REPLY] {username} -> #{reply_to_id}: {content}")
+                        self._broadcast_reply(username, content, f"{reply_to_id}|{who}|{snippet}")
+
+                    # FORWARD ---------------------------------------------------
+                    elif msg_type == "FORWARD":
+                        message_id, target_username = self._parse_forward(routed.content)
+                        if message_id is None:
+                            self._send_text(
+                                client_socket,
+                                "ERROR|FORWARD dung dang: FORWARD|message_id|target_username"
+                            )
+                            continue
+
+                        original = get_message_brief(message_id)
+                        if original is None:
+                            self._send_text(client_socket, "ERROR|Tin nhan goc khong ton tai.")
+                            continue
+
+                        sender_id = self.user_ids.get(username)
+                        target_id = self.user_ids.get(target_username)
+                        if sender_id and target_id:
+                            conv_id = get_or_create_private_conversation(sender_id, target_id)
+                            save_message(conv_id, sender_id, original["content"],
+                                         forward_from_message_id=message_id)
+
+                        if self._send_private(username, target_username, original["content"]):
+                            log(f"[FORWARD] {username} -> {target_username}: #{message_id}")
+                        else:
+                            self._send_text(
+                                client_socket,
+                                f"ERROR|Nguoi dung {target_username} khong online."
                             )
 
                     # PING --------------------------------------------------
@@ -249,6 +320,9 @@ class ChatServer:
         finally:
             if username is not None:
                 self._unregister_username(username, client_socket)
+                user_id = self.user_ids.pop(username, None)
+                if user_id:
+                    set_user_status(user_id, "offline")
                 self._broadcast(
                     "SYSTEM",
                     f"{username} da roi phong chat."
@@ -310,6 +384,13 @@ class ChatServer:
         for sock in disconnected:
             self._remove_client_socket(sock)
 
+    def _broadcast_reply(self, sender: str, message: str, extra: str) -> None:
+        packet = f"REPLY|{sender}|{message}|{extra}"
+        with self.clients_lock:
+            targets = list(self.online_clients.values())
+        for sock in targets:
+            self._send_text_safely(sock, packet)
+
     def _send_online_list(self) -> None:
         users = self.get_online_users()
         packet = "ONLINE|" + ",".join(users)
@@ -336,6 +417,45 @@ class ChatServer:
         if not receiver or not message:
             return None, None
         return receiver, message
+
+    @staticmethod
+    def _parse_login(content: str):
+        parts = content.split("|", 1)
+        if len(parts) != 2:
+            return None, None
+        username, password = parts[0].strip(), parts[1].strip()
+        if not username or not password:
+            return None, None
+        return username, password
+
+    @staticmethod
+    def _parse_register(content: str):
+        parts = content.split("|", 3)
+        if len(parts) != 4:
+            return None, None, None, None
+        return [p.strip() for p in parts]
+
+    @staticmethod
+    def _parse_reply(content: str):
+        parts = content.split("|", 1)
+        if len(parts) != 2:
+            return None, None
+        try:
+            reply_to_id = int(parts[0].strip())
+        except ValueError:
+            return None, None
+        return reply_to_id, parts[1].strip()
+
+    @staticmethod
+    def _parse_forward(content: str):
+        parts = content.split("|", 1)
+        if len(parts) != 2:
+            return None, None
+        try:
+            message_id = int(parts[0].strip())
+        except ValueError:
+            return None, None
+        return message_id, parts[1].strip()
 
     def _send_private(
         self, sender: str, receiver: str, message: str

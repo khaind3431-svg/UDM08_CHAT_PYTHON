@@ -11,9 +11,12 @@ class MessageRouter:
     # Khop voi protocol text ma Client GUI hien tai dang gui.
     SUPPORTED_TYPES = {
         "LOGIN",
+        "REGISTER",
         "PING",
         "MESSAGE",
         "PRIVATE",
+        "REPLY",
+        "FORWARD",
         "LOGOUT",
     }
 
@@ -32,7 +35,7 @@ class MessageRouter:
                 f"Loai thong diep khong ho tro: {message_type}"
             )
 
-        if message_type in {"LOGIN", "MESSAGE", "PRIVATE"} and not content:
+        if message_type in {"LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD"} and not content:
             raise ValueError(
                 f"{message_type} yeu cau noi dung."
             )
