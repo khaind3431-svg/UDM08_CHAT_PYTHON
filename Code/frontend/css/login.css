@@ -1,0 +1,308 @@
+/* ===========================================================
+   WIRELINE — Login page (v2: split-screen)
+   Left: brand story + floating "packet" cards (our signature,
+   built from chat/socket iconography instead of generic photos).
+   Right: plain, minimal auth form — no card border, lots of air.
+   =========================================================== */
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  background: var(--bg);
+}
+
+/* ---------------- LEFT: story panel ---------------- */
+.login-story {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 56px;
+  background:
+    radial-gradient(circle at 15% 15%, var(--accent-soft), transparent 55%),
+    var(--bg-sunken);
+}
+
+.login-story .brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-story .brand-mark .mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(155deg, var(--accent), var(--accent-strong));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-story .brand-mark .mark svg { width: 18px; height: 18px; color: var(--accent-contrast); }
+.login-story .brand-mark span { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+
+.story-stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-copy {
+  position: absolute;
+  left: 0;
+  bottom: 64px;
+  max-width: 420px;
+  z-index: 3;
+}
+
+.story-copy h1 {
+  font-family: var(--font-display);
+  font-size: 42px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.story-copy h1 span { color: var(--accent-strong); }
+
+.story-copy p {
+  margin-top: 14px;
+  font-size: 15px;
+  color: var(--text-muted);
+  max-width: 360px;
+}
+
+/* Floating mock cards */
+.float-card {
+  position: absolute;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 14px;
+}
+
+.card-conversation {
+  width: 250px;
+  top: 6%;
+  right: 6%;
+  transform: rotate(4deg);
+}
+
+.card-conversation .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.card-conversation .row .avatar { width: 30px; height: 30px; font-size: 11px; }
+.card-conversation .row .who { font-size: 12.5px; font-weight: 600; }
+.card-conversation .row .who small { display: block; font-size: 10.5px; color: var(--text-faint); font-weight: 400; }
+
+.card-conversation .line {
+  align-self: flex-start;
+  background: var(--bg-sunken);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  max-width: 90%;
+}
+
+.card-conversation .line.mine {
+  margin-left: auto;
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.card-packet {
+  width: 190px;
+  left: 2%;
+  bottom: 18%;
+  transform: rotate(-6deg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-packet svg { width: 22px; height: 22px; color: var(--accent-strong); flex-shrink: 0; }
+.card-packet .t { font-size: 11.5px; color: var(--text-faint); }
+.card-packet .v { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; }
+
+.float-pill {
+  position: absolute;
+  top: 34%;
+  left: 12%;
+  transform: rotate(-3deg);
+}
+
+.float-emoji {
+  position: absolute;
+  bottom: 8%;
+  right: 18%;
+  font-size: 34px;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.15));
+  transform: rotate(-8deg);
+}
+
+.float-heart {
+  position: absolute;
+  bottom: 30%;
+  right: 4%;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--reply);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+
+.float-heart svg { width: 22px; height: 22px; color: var(--accent-contrast); }
+
+/* ---------------- RIGHT: auth panel ---------------- */
+.login-auth {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 64px;
+  background: var(--bg);
+}
+
+.login-auth .topbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.auth-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 380px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-sunken);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 28px;
+}
+
+.auth-tabs button {
+  flex: 1;
+  text-align: center;
+  padding: 9px 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: 7px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.auth-tabs button.active {
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-heading h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+
+.auth-heading p {
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+form.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+/* Flat, borderless "modern" inputs — fill instead of outline */
+.field .input-wrap {
+  border: 1px solid transparent;
+  background: var(--bg-sunken);
+  border-radius: 12px;
+  padding: 0 14px;
+}
+
+.field .input-wrap:focus-within {
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.field input { padding: 14px 0; font-size: 15px; }
+
+.form-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.form-meta a { color: var(--accent-strong); font-weight: 600; }
+
+.checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.checkbox-line input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+}
+
+.auth-form .btn-primary {
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-top: 4px;
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-strong);
+  border: 1.5px solid var(--border-strong);
+  background: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+.auth-footnote {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  margin-top: 22px;
+}
+
+@media (max-width: 940px) {
+  .login-page { grid-template-columns: 1fr; }
+  .login-story { display: none; }
+  .login-auth { padding: 24px 24px; }
+}
