@@ -1,5 +1,5 @@
-from config import ENCODING
-from server_logger import log
+from Code.backend.utils.server_logger import log
+from Code.config.server_config import ENCODING
 
 
 class PrivateChat:

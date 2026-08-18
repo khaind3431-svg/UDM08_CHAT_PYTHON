@@ -1,24 +1,21 @@
 import socket
+import sys
 import threading
+from pathlib import Path
 from typing import Optional
 
 # Ho tro ca hai cach chay:
-#   python server/server.py
-#   python -m server.server
-try:
-    from .config import (
-        ACCEPT_TIMEOUT, BACKLOG, BUFFER_SIZE, CLIENT_TIMEOUT,
-        ENCODING, HOST, MAX_CLIENTS, PORT,
-    )
-    from .message_router import MessageRouter
-    from .server_logger import log
-except ImportError:
-    from config import (
-        ACCEPT_TIMEOUT, BACKLOG, BUFFER_SIZE, CLIENT_TIMEOUT,
-        ENCODING, HOST, MAX_CLIENTS, PORT,
-    )
-    from message_router import MessageRouter
-    from server_logger import log
+#   python Code/backend/server_main.py
+#   python -m Code.backend.server_main
+if __package__ in {None, ""}:
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from Code.backend.message_protocol import MessageRouter
+from Code.backend.utils.server_logger import log
+from Code.config.server_config import (
+    ACCEPT_TIMEOUT, BACKLOG, BUFFER_SIZE, CLIENT_TIMEOUT,
+    ENCODING, HOST, MAX_CLIENTS, PORT,
+)
 
 
 class ChatServer:
