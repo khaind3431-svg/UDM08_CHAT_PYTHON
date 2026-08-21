@@ -48,13 +48,17 @@ class ChatController:
 
         sender_id = self.get_user_id(username)
         receiver_id = self.get_user_id(receiver)
+        message_id = None
         if sender_id and receiver_id:
             conv_id = get_or_create_private_conversation(sender_id, receiver_id)
-            save_message(conv_id, sender_id, message)
+            message_id = save_message(conv_id, sender_id, message)
 
-        if self.private_chat.send_private(username, receiver, message):
+        id_part = message_id if message_id is not None else 0
+        message_with_id = f"{message}|{id_part}"
+
+        if self.private_chat.send_private(username, receiver, message_with_id):
             if receiver != username:
-                self._send(client_socket, f"PRIVATE|{username}|To {receiver}: {message}")
+                self._send(client_socket, f"PRIVATE|{username}|To {receiver}: {message}|{id_part}")
         else:
             self._send(client_socket, f"ERROR|Nguoi dung {receiver} khong online.")
 
