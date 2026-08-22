@@ -1,22 +1,5 @@
-"""
-GUI Client - nhung giao dien HTML/CSS/JS co san (Code/frontend) thanh
-mot cua so desktop that bang pywebview, va noi no toi server TCP that
-qua ChatApi.
-
-Trinh duyet/JS thuan khong the tu mo TCP socket, nen toan bo phan ket
-noi mang (LOGIN, REGISTER, MESSAGE, PRIVATE, REPLY, FORWARD, PING,
-LOGOUT) duoc xu ly ben Python trong lop ChatApi, va duoc pywebview
-"expose" sang cho JS goi qua window.pywebview.api.<ten_ham>(...).
-
-Chieu nguoc lai (server gui du lieu ve), ChatApi day tung dong nhan
-duoc sang cho JS bang cach goi ham JS toan cuc window.onServerMessage(line)
-(dinh nghia trong Code/frontend/js/network.js).
-
-Cach chay:
-    python Code/client/gui_client.py
-"""
-
 import json
+import os
 import socket
 import sys
 import threading
@@ -29,15 +12,14 @@ FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
 LOGIN_PAGE = str(FRONTEND_DIR / "login.html")
 CHAT_PAGE = str(FRONTEND_DIR / "chat.html")
 
+STORAGE_PATH = str(Path.home() / ".wireline_chat" / f"gui-{os.getpid()}")
+
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5000
 ENCODING = "utf-8"
 
 
 class ChatApi:
-    """Lop duoc expose sang JS qua js_api. Moi ham public o day co the
-    duoc goi tu JS bang: window.pywebview.api.ten_ham(...) -> Promise."""
-
     def __init__(self) -> None:
         self.window: Optional["webview.Window"] = None
         self.sock: Optional[socket.socket] = None
@@ -45,26 +27,40 @@ class ChatApi:
         self.username: Optional[str] = None
         self.display_name: Optional[str] = None
         self.online_users: list[str] = []
+        self._lock = threading.Lock()
+        self._generation = 0
 
     def set_window(self, window: "webview.Window") -> None:
         self.window = window
 
     def connect(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> dict:
-        if self.connected:
-            return {"ok": True}
-        try:
-            self.sock = socket.create_connection((host, port), timeout=5)
-        except OSError as error:
-            return {"ok": False, "error": f"Khong ket noi duoc toi server ({host}:{port}): {error}"}
+        with self._lock:
+            if self.connected:
+                return {"ok": True}
+            try:
+                new_sock = socket.create_connection((host, port), timeout=5)
+            except OSError as error:
+                return {"ok": False, "error": f"Khong ket noi duoc toi server ({host}:{port}): {error}"}
 
-        self.connected = True
-        threading.Thread(target=self._recv_loop, daemon=True).start()
+            new_sock.settimeout(None)
+
+            if self.sock is not None:
+                try:
+                    self.sock.close()
+                except OSError:
+                    pass
+
+            self._generation += 1
+            my_generation = self._generation
+            self.sock = new_sock
+            self.connected = True
+
+        threading.Thread(target=self._recv_loop, args=(my_generation, new_sock), daemon=True).start()
         return {"ok": True}
 
-    def _recv_loop(self) -> None:
+    def _recv_loop(self, my_generation: int, sock: socket.socket) -> None:
         buffer = ""
-        sock = self.sock
-        while self.connected and sock is not None:
+        while self.connected and self._generation == my_generation:
             try:
                 data = sock.recv(4096)
             except OSError:
@@ -78,8 +74,9 @@ class ChatApi:
                 if line:
                     self._handle_incoming_line(line)
 
-        self.connected = False
-        self._push_to_js("__DISCONNECTED__")
+        if self._generation == my_generation:
+            self.connected = False
+            self._push_to_js("__DISCONNECTED__")
 
     def _handle_incoming_line(self, line: str) -> None:
         if line.startswith("ONLINE|"):
@@ -136,13 +133,15 @@ class ChatApi:
 
     def logout(self) -> dict:
         result = self._send_raw("LOGOUT")
-        self.connected = False
-        if self.sock is not None:
-            try:
-                self.sock.close()
-            except OSError:
-                pass
-        self.sock = None
+        with self._lock:
+            self.connected = False
+            self._generation += 1
+            if self.sock is not None:
+                try:
+                    self.sock.close()
+                except OSError:
+                    pass
+            self.sock = None
         self.username = None
         self.online_users = []
         return result
@@ -174,7 +173,8 @@ def main() -> None:
         min_size=(960, 600),
     )
     api.set_window(window)
-    webview.start(debug="--debug" in sys.argv)
+    os.makedirs(STORAGE_PATH, exist_ok=True)
+    webview.start(debug="--debug" in sys.argv, storage_path=STORAGE_PATH)
 
 
 if __name__ == "__main__":
