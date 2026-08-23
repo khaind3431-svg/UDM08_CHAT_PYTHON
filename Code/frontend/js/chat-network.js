@@ -20,6 +20,8 @@
       messageScroll: document.getElementById('message-scroll'),
       composerInput: document.getElementById('composer-input'),
       sendBtn: document.getElementById('send-btn'),
+      imageBtn: document.getElementById('image-btn'),
+      imageInput: document.getElementById('image-input'),
       replyBanner: document.getElementById('reply-banner'),
       replyBannerName: document.getElementById('reply-banner-name'),
       replyBannerSnippet: document.getElementById('reply-banner-snippet'),
@@ -43,6 +45,7 @@
       selectTarget(BROADCAST_TARGET);
       bindBroadcastItem();
       bindComposer();
+      bindImageUpload();
       bindReplyCancel();
       bindForwardConfirm();
       bindLogout();
@@ -128,6 +131,35 @@
       input.value = '';
     }
 
+    function bindImageUpload() {
+      if (!elements.imageBtn || !elements.imageInput) return;
+      elements.imageBtn.addEventListener('click', () => elements.imageInput.click());
+      elements.imageInput.addEventListener('change', () => {
+        const file = elements.imageInput.files && elements.imageInput.files[0];
+        elements.imageInput.value = '';
+        if (!file) return;
+        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowed.includes(file.type)) {
+          appendSystemLine('Lỗi: Chỉ chọn ảnh JPG, PNG, GIF hoặc WEBP.');
+          return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+          appendSystemLine('Lỗi: Ảnh không được vượt quá 2 MB.');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = String(reader.result || '');
+          const comma = result.indexOf(',');
+          if (comma < 0) return;
+          api.send_image(state.currentTarget, file.name, file.type, result.slice(comma + 1));
+        };
+        reader.onerror = () => appendSystemLine('Lỗi: Không đọc được ảnh.');
+        reader.readAsDataURL(file);
+      });
+    }
+
     window.addEventListener('chat:MESSAGE', (event) => {
       const [sender, content] = event.detail;
       if (sender === 'SYSTEM') {
@@ -165,6 +197,15 @@
         messageId: null,
         replyTo: { name: originalSender, snippet: originalSnippet },
       });
+    });
+
+    window.addEventListener('chat:IMAGE', (event) => {
+      const [sender, target, fileName, mimeType, dataBase64] = event.detail;
+      const isOwn = sender === state.username;
+      const belongsHere = target === BROADCAST_TARGET
+        ? state.currentTarget === BROADCAST_TARGET
+        : (isOwn ? state.currentTarget === target : state.currentTarget === sender);
+      if (belongsHere) appendImageBubble({ sender, fileName, mimeType, dataBase64, isOwn });
     });
 
     window.addEventListener('chat:ONLINE', (event) => {
@@ -235,6 +276,48 @@
       div.className = 'date-divider';
       div.textContent = text;
       elements.messageScroll.appendChild(div);
+      elements.messageScroll.scrollTop = elements.messageScroll.scrollHeight;
+    }
+
+    function appendImageBubble({ sender, fileName, mimeType, dataBase64, isOwn }) {
+      if (!elements.messageScroll) return;
+      const row = document.createElement('div');
+      row.className = 'msg-row ' + (isOwn ? 'out' : 'in');
+
+      if (!isOwn) {
+        const avatar = document.createElement('span');
+        avatar.className = 'avatar';
+        avatar.style.cssText = 'width:30px;height:30px;font-size:11px';
+        avatar.textContent = sender.slice(0, 2).toUpperCase();
+        row.appendChild(avatar);
+      }
+
+      const col = document.createElement('div');
+      col.className = 'msg-col';
+      if (!isOwn) {
+        const name = document.createElement('span');
+        name.className = 'sender-name';
+        name.textContent = sender;
+        col.appendChild(name);
+      }
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble image-bubble';
+      const img = document.createElement('img');
+      img.className = 'chat-image';
+      img.src = `data:${mimeType};base64,${dataBase64}`;
+      img.alt = fileName || 'Ảnh đã gửi';
+      img.title = fileName || 'Ảnh đã gửi';
+      img.addEventListener('click', () => window.open(img.src, '_blank'));
+      bubble.appendChild(img);
+      col.appendChild(bubble);
+
+      const meta = document.createElement('span');
+      meta.className = 'msg-meta';
+      meta.textContent = formatTime();
+      col.appendChild(meta);
+      row.appendChild(col);
+      elements.messageScroll.appendChild(row);
       elements.messageScroll.scrollTop = elements.messageScroll.scrollHeight;
     }
 

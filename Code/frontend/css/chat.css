@@ -188,6 +188,22 @@
 
 .bubble .emoji { font-size: 17px; vertical-align: -2px; }
 
+.image-bubble {
+  padding: 5px;
+  overflow: hidden;
+  max-width: 340px;
+}
+
+.chat-image {
+  display: block;
+  width: auto;
+  max-width: 320px;
+  max-height: 320px;
+  border-radius: 10px;
+  object-fit: contain;
+  cursor: zoom-in;
+}
+
 .msg-meta {
   display: flex;
   align-items: center;

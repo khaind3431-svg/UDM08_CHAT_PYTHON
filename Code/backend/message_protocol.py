@@ -17,6 +17,7 @@ class MessageRouter:
         "PRIVATE",
         "REPLY",
         "FORWARD",
+        "IMAGE",
         "LOGOUT",
     }
 
@@ -35,7 +36,7 @@ class MessageRouter:
                 f"Loai thong diep khong ho tro: {message_type}"
             )
 
-        if message_type in {"LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD"} and not content:
+        if message_type in {"LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD", "IMAGE"} and not content:
             raise ValueError(
                 f"{message_type} yeu cau noi dung."
             )

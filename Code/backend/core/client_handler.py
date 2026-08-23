@@ -14,7 +14,7 @@ from Code.backend.message_protocol import MessageRouter
 from Code.config.server_config import BUFFER_SIZE, ENCODING
 
 # Cac loai thong diep bat buoc phai LOGIN truoc moi duoc dung.
-_REQUIRES_LOGIN = {"MESSAGE", "PRIVATE", "REPLY", "FORWARD"}
+_REQUIRES_LOGIN = {"MESSAGE", "PRIVATE", "REPLY", "FORWARD", "IMAGE"}
 
 
 class ClientHandler:
