@@ -52,14 +52,40 @@ CREATE TABLE conversations (
                     CHECK (type IN ('private', 'group')),
     name            TEXT DEFAULT NULL,
     avatar_url      TEXT DEFAULT NULL,
+
+    -- CHAT RIÊNG 1-1:
+    -- Lưu đúng 2 user theo thứ tự nhỏ -> lớn để tránh
+    -- tạo nhiều conversation cho cùng một cặp người dùng.
+    private_user_1  INTEGER DEFAULT NULL,
+    private_user_2  INTEGER DEFAULT NULL,
+
     created_by      INTEGER NOT NULL,
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
 
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (private_user_1) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (private_user_2) REFERENCES users(id) ON DELETE CASCADE,
+
+    CHECK (
+        (type = 'private'
+         AND private_user_1 IS NOT NULL
+         AND private_user_2 IS NOT NULL
+         AND private_user_1 < private_user_2
+         AND name IS NULL)
+        OR
+        (type = 'group'
+         AND private_user_1 IS NULL
+         AND private_user_2 IS NULL)
+    )
 );
 
 CREATE INDEX idx_conversations_type ON conversations(type);
+
+-- Mỗi cặp user chỉ có 1 cuộc trò chuyện riêng.
+CREATE UNIQUE INDEX idx_private_conversation_pair
+    ON conversations(private_user_1, private_user_2)
+    WHERE type = 'private';
 
 CREATE TRIGGER trg_conversations_updated_at
 AFTER UPDATE ON conversations
@@ -174,6 +200,13 @@ CREATE TABLE contacts (
 );
 
 CREATE INDEX idx_contacts_status ON contacts(status);
+
+-- Không cho cùng một cặp user tạo quan hệ A->B và B->A trùng nhau.
+CREATE UNIQUE INDEX idx_contacts_unique_pair
+    ON contacts(
+        MIN(user_id, contact_id),
+        MAX(user_id, contact_id)
+    );
 
 CREATE TRIGGER trg_contacts_updated_at
 AFTER UPDATE ON contacts
@@ -317,6 +350,23 @@ CREATE TABLE notifications (
 
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 
+
+-- ============================================================
+-- CHỨC NĂNG KẾT BẠN + CHAT RIÊNG
+-- ============================================================
+-- KẾT BẠN:
+--   contacts(user_id, contact_id, status)
+--   status: pending / accepted / blocked / rejected
+--   Mỗi cặp user chỉ có một quan hệ duy nhất.
+--
+-- CHAT RIÊNG:
+--   conversations.type = 'private'
+--   private_user_1 và private_user_2 lưu 2 người tham gia.
+--   Luôn lưu private_user_1 < private_user_2.
+--   UNIQUE INDEX ngăn tạo conversation riêng trùng.
+--   conversation_members vẫn lưu thành viên thực tế của conversation.
+--
+-- ============================================================
 
 -- ============================================================
 -- GHI CHÚ THIẾT KẾ (SQLite)
