@@ -6,7 +6,7 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-import webview
+import webview 
 
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
 LOGIN_PAGE = str(FRONTEND_DIR / "login.html")
@@ -29,6 +29,7 @@ class ChatApi:
         self.online_users: list[str] = []
         self._lock = threading.Lock()
         self._generation = 0
+        
 
     def set_window(self, window: "webview.Window") -> None:
         self.window = window
@@ -128,6 +129,33 @@ class ChatApi:
     def send_forward(self, message_id, target_username: str) -> dict:
         return self._send_raw(f"FORWARD|{message_id}|{target_username}")
 
+    # ==================== KET BAN + PROFILE ====================
+    def get_user_info(self, target_username: str) -> dict:
+        target = target_username.strip()
+        if not target:
+            return {"ok": False, "error": "Ten nguoi dung khong hop le."}
+        return self._send_raw(f"GETINFO|{target}")
+
+    def add_friend(self, target_username: str) -> dict:
+        target = target_username.strip()
+        if not target:
+            return {"ok": False, "error": "Ten nguoi dung khong hop le."}
+        if target == self.username:
+            return {"ok": False, "error": "Ban khong the tu ket ban voi chinh minh."}
+        return self._send_raw(f"ADDFRIEND|{target}")
+
+    def respond_friend_request(self, target_username: str, is_accept: bool) -> dict:
+        target = target_username.strip()
+        action = "ACCEPT" if is_accept else "REJECT"
+        return self._send_raw(f"FRIEND_RESP|{target}|{action}")
+
+    def get_friend_list(self) -> dict:
+        return self._send_raw("FRIENDLIST")
+
+    def get_friend_requests(self) -> dict:
+        return self._send_raw("FRIENDREQUESTS")
+    # =============================================================
+
     def ping(self) -> dict:
         return self._send_raw("PING")
 
@@ -160,7 +188,6 @@ class ChatApi:
     def navigate_to_login(self) -> None:
         if self.window is not None:
             self.window.load_url(LOGIN_PAGE)
-
 
 def main() -> None:
     api = ChatApi()

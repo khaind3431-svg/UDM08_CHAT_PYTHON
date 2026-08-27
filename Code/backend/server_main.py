@@ -14,6 +14,8 @@ if __package__ in {None, ""}:
 
 from Code.backend.controllers.auth_controller import AuthController
 from Code.backend.controllers.chat_controller import ChatController
+from Code.backend.controllers.contact_controller import ContactController
+from Code.backend.controllers.profile_controller import ProfileController
 from Code.backend.core.client_handler import ClientHandler
 from Code.backend.core.client_manager import ClientManager
 from Code.backend.core.session_manager import OnlineManager
@@ -74,6 +76,14 @@ class ChatServer:
             self.client_manager,
             self.broadcaster,
             self.private_chat,
+            get_user_id=lambda username:
+                self.auth_controller.user_ids.get(username),
+        )
+
+        self.contact_controller = ContactController(
+            self.client_manager
+        )
+        self.profile_controller = ProfileController(
             get_user_id=lambda username:
                 self.auth_controller.user_ids.get(username),
         )
@@ -190,6 +200,8 @@ class ChatServer:
                 router=self.router,
                 auth_controller=self.auth_controller,
                 chat_controller=self.chat_controller,
+                contact_controller=self.contact_controller,
+                profile_controller=self.profile_controller,
                 running_flag=self.running,
             )
 

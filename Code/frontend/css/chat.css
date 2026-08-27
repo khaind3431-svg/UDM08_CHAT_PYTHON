@@ -442,3 +442,160 @@
   .sidebar { position: absolute; z-index: 20; height: 100%; box-shadow: var(--shadow-lg); }
   .msg-row { max-width: 86%; }
 }
+/* ===========================================================
+   WIRELINE — Ket ban + Ho so ca nhan (them cho tinh nang moi)
+   =========================================================== */
+
+.friend-add-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 5px 6px 5px 14px;
+}
+
+.friend-add-wrap input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13.5px;
+  color: var(--text);
+  min-width: 0;
+}
+
+.friend-add-wrap input::placeholder { color: var(--text-faint); }
+.friend-add-wrap .icon-btn { width: 30px; height: 30px; flex-shrink: 0; }
+.friend-add-wrap .icon-btn svg { width: 16px; height: 16px; }
+
+.friend-add-status {
+  font-size: 12px;
+  min-height: 14px;
+  padding: 0 2px;
+}
+.friend-add-status.ok { color: var(--online, #2e9e5b); }
+.friend-add-status.err { color: #e5484d; }
+
+/* Badge so luong loi moi ket ban tren nut chuong */
+.req-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: #e5484d;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Nut "xem ho so" nho trong tung dong danh sach online */
+.contact-item .info-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+}
+.contact-item .info-btn:hover { background: var(--bg-elevated); color: var(--accent-strong); }
+.contact-item .info-btn svg { width: 14px; height: 14px; }
+
+/* ---- Profile modal ---- */
+.profile-modal {
+  position: relative;
+  text-align: center;
+  max-width: 340px;
+}
+
+.profile-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  margin: 4px auto 12px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-modal h3 { font-size: 17px; margin-bottom: 2px; }
+
+.profile-modal .sub {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+}
+
+.profile-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 auto 12px;
+}
+
+.profile-status .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint);
+}
+.profile-status.online .dot { background: var(--online, #2e9e5b); }
+.profile-status.online { color: var(--online, #2e9e5b); }
+
+.profile-bio {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 18px;
+  min-height: 18px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.profile-modal .modal-actions button { min-width: 120px; justify-content: center; }
+
+/* ---- Friend requests list items ---- */
+.friend-req-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+}
+.friend-req-item:hover { background: var(--bg-sunken); }
+
+.friend-req-item .name { flex: 1; font-size: 14px; font-weight: 600; min-width: 0; }
+
+.friend-req-item .req-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.friend-req-item .req-actions button {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.friend-req-item .accept-btn { background: var(--accent); color: var(--accent-contrast); }
+.friend-req-item .accept-btn:hover { filter: brightness(1.08); }
+.friend-req-item .reject-btn { color: var(--text-muted); border: 1px solid var(--border); }
+.friend-req-item .reject-btn:hover { background: var(--bg-sunken); }
+
+.empty-hint {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+  padding: 20px 0;
+}

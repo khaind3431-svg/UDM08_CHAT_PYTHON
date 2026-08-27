@@ -14,8 +14,14 @@ from Code.backend.message_protocol import MessageRouter
 from Code.config.server_config import BUFFER_SIZE, ENCODING
 
 # Cac loai thong diep bat buoc phai LOGIN truoc moi duoc dung.
-_REQUIRES_LOGIN = {"MESSAGE", "PRIVATE", "REPLY", "FORWARD"}
+_REQUIRES_LOGIN = {
+    "MESSAGE", "PRIVATE", "REPLY", "FORWARD",
+    "ADDFRIEND", "FRIEND_RESP", "FRIENDLIST", "FRIENDREQUESTS",
+    "GETINFO",
+}
 
+_CONTACT_TYPES = {"ADDFRIEND", "FRIEND_RESP", "FRIENDLIST", "FRIENDREQUESTS"}
+_PROFILE_TYPES = {"GETINFO"}
 
 class ClientHandler:
     def __init__(
@@ -26,6 +32,8 @@ class ClientHandler:
         router: MessageRouter,
         auth_controller,
         chat_controller,
+        contact_controller,
+        profile_controller,
         running_flag: threading.Event,
     ) -> None:
         self.socket = client_socket
@@ -33,6 +41,8 @@ class ClientHandler:
         self.router = router
         self.auth_controller = auth_controller
         self.chat_controller = chat_controller
+        self.contact_controller = contact_controller
+        self.profile_controller = profile_controller
         self.running = running_flag
         self.username: Optional[str] = None
 
@@ -93,6 +103,14 @@ class ClientHandler:
 
         if msg_type in _REQUIRES_LOGIN and self.username is None:
             self._send(self.socket, "ERROR|Ban phai LOGIN truoc.")
+            return True
+
+        if msg_type in _CONTACT_TYPES:
+            self.contact_controller.handle(msg_type, routed.content, self.username, self.socket)
+            return True
+
+        if msg_type in _PROFILE_TYPES:
+            self.profile_controller.handle(msg_type, routed.content, self.username, self.socket)
             return True
 
         if msg_type in _REQUIRES_LOGIN:

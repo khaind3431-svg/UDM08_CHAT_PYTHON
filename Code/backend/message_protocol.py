@@ -18,6 +18,20 @@ class MessageRouter:
         "REPLY",
         "FORWARD",
         "LOGOUT",
+        # --- Ket ban ---
+        "ADDFRIEND",
+        "FRIEND_RESP",
+        "FRIENDLIST",
+        "FRIENDREQUESTS",
+        "GETINFO"
+    }
+
+    # FRIENDLIST va FRIENDREQUESTS khong can noi dung (chi username dang
+    # dang nhap la du de server tra loi), nen khong nam trong danh sach
+    # bat buoc co content ben duoi.
+    _REQUIRES_CONTENT = {
+        "LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD",
+        "ADDFRIEND", "FRIEND_RESP", "GETINFO",
     }
 
     def route(self, raw_message: str) -> RoutedMessage:
@@ -35,7 +49,7 @@ class MessageRouter:
                 f"Loai thong diep khong ho tro: {message_type}"
             )
 
-        if message_type in {"LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD"} and not content:
+        if message_type in self._REQUIRES_CONTENT and not content:
             raise ValueError(
                 f"{message_type} yeu cau noi dung."
             )
