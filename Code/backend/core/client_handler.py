@@ -15,7 +15,7 @@ from Code.config.server_config import BUFFER_SIZE, ENCODING
 
 # Cac loai thong diep bat buoc phai LOGIN truoc moi duoc dung.
 _REQUIRES_LOGIN = {
-    "MESSAGE", "PRIVATE", "REPLY", "FORWARD",
+    "MESSAGE", "PRIVATE", "REPLY", "FORWARD", "IMAGE",
     "ADDFRIEND", "FRIEND_RESP", "FRIENDLIST", "FRIENDREQUESTS",
     "GETINFO",
 }

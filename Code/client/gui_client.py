@@ -1,5 +1,22 @@
+"""
+GUI Client - nhung giao dien HTML/CSS/JS co san (Code/frontend) thanh
+mot cua so desktop that bang pywebview, va noi no toi server TCP that
+qua ChatApi.
+
+Trinh duyet/JS thuan khong the tu mo TCP socket, nen toan bo phan ket
+noi mang (LOGIN, REGISTER, MESSAGE, PRIVATE, REPLY, FORWARD, PING,
+LOGOUT) duoc xu ly ben Python trong lop ChatApi, va duoc pywebview
+"expose" sang cho JS goi qua window.pywebview.api.<ten_ham>(...).
+
+Chieu nguoc lai (server gui du lieu ve), ChatApi day tung dong nhan
+duoc sang cho JS bang cach goi ham JS toan cuc window.onServerMessage(line)
+(dinh nghia trong Code/frontend/js/network.js).
+
+Cach chay:
+    python Code/client/gui_client.py
+"""
+
 import json
-import os
 import socket
 import sys
 import threading
@@ -12,16 +29,17 @@ FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
 LOGIN_PAGE = str(FRONTEND_DIR / "login.html")
 CHAT_PAGE = str(FRONTEND_DIR / "chat.html")
 
-STORAGE_PATH = str(Path.home() / ".wireline_chat" / f"gui-{os.getpid()}")
-
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5000
 ENCODING = "utf-8"
 
 
 class ChatApi:
+    """Lop duoc expose sang JS qua js_api. Moi ham public o day co the
+    duoc goi tu JS bang: window.pywebview.api.ten_ham(...) -> Promise."""
+
     def __init__(self) -> None:
-        self.window: Optional["webview.Window"] = None
+        self._window: Optional["webview.Window"] = None
         self.sock: Optional[socket.socket] = None
         self.connected = False
         self.username: Optional[str] = None
@@ -29,39 +47,28 @@ class ChatApi:
         self.online_users: list[str] = []
         self._lock = threading.Lock()
         self._generation = 0
-        
 
     def set_window(self, window: "webview.Window") -> None:
-        self.window = window
+        self._window = window
 
     def connect(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> dict:
-        with self._lock:
-            if self.connected:
-                return {"ok": True}
-            try:
-                new_sock = socket.create_connection((host, port), timeout=5)
-            except OSError as error:
-                return {"ok": False, "error": f"Khong ket noi duoc toi server ({host}:{port}): {error}"}
+        if self.connected:
+            return {"ok": True}
+        try:
+            self.sock = socket.create_connection((host, port), timeout=5)
+            self.sock.settimeout(None)
 
-            new_sock.settimeout(None)
+        except OSError as error:
+            return {"ok": False, "error": f"Khong ket noi duoc toi server ({host}:{port}): {error}"}
 
-            if self.sock is not None:
-                try:
-                    self.sock.close()
-                except OSError:
-                    pass
-
-            self._generation += 1
-            my_generation = self._generation
-            self.sock = new_sock
-            self.connected = True
-
-        threading.Thread(target=self._recv_loop, args=(my_generation, new_sock), daemon=True).start()
+        self.connected = True
+        threading.Thread(target=self._recv_loop, daemon=True).start()
         return {"ok": True}
 
-    def _recv_loop(self, my_generation: int, sock: socket.socket) -> None:
+    def _recv_loop(self) -> None:
         buffer = ""
-        while self.connected and self._generation == my_generation:
+        sock = self.sock
+        while self.connected and sock is not None:
             try:
                 data = sock.recv(4096)
             except OSError:
@@ -75,9 +82,8 @@ class ChatApi:
                 if line:
                     self._handle_incoming_line(line)
 
-        if self._generation == my_generation:
-            self.connected = False
-            self._push_to_js("__DISCONNECTED__")
+        self.connected = False
+        self._push_to_js("__DISCONNECTED__")
 
     def _handle_incoming_line(self, line: str) -> None:
         if line.startswith("ONLINE|"):
@@ -86,7 +92,7 @@ class ChatApi:
         self._push_to_js(line)
 
     def _push_to_js(self, line: str) -> None:
-        window = self.window
+        window = self._window
         if window is None:
             return
         try:
@@ -122,6 +128,13 @@ class ChatApi:
 
     def send_private(self, receiver: str, content: str) -> dict:
         return self._send_raw(f"PRIVATE|{receiver}|{content}")
+
+    def send_image(self, target: str, file_name: str,
+                   mime_type: str, data_base64: str) -> dict:
+        safe_name = Path(file_name).name.replace("|", "_")
+        return self._send_raw(
+            f"IMAGE|{target}|{safe_name}|{mime_type}|{data_base64}"
+        )
 
     def send_reply(self, reply_to_id, content: str) -> dict:
         return self._send_raw(f"REPLY|{reply_to_id}|{content}")
@@ -161,15 +174,13 @@ class ChatApi:
 
     def logout(self) -> dict:
         result = self._send_raw("LOGOUT")
-        with self._lock:
-            self.connected = False
-            self._generation += 1
-            if self.sock is not None:
-                try:
-                    self.sock.close()
-                except OSError:
-                    pass
-            self.sock = None
+        self.connected = False
+        if self.sock is not None:
+            try:
+                self.sock.close()
+            except OSError:
+                pass
+        self.sock = None
         self.username = None
         self.online_users = []
         return result
@@ -182,12 +193,12 @@ class ChatApi:
         }
 
     def navigate_to_chat(self) -> None:
-        if self.window is not None:
-            self.window.load_url(CHAT_PAGE)
+        if self._window is not None:
+           self._window.load_url(CHAT_PAGE)
 
     def navigate_to_login(self) -> None:
-        if self.window is not None:
-            self.window.load_url(LOGIN_PAGE)
+        if self._window is not None:
+           self._window.load_url(LOGIN_PAGE)
 
 def main() -> None:
     api = ChatApi()
@@ -200,8 +211,7 @@ def main() -> None:
         min_size=(960, 600),
     )
     api.set_window(window)
-    os.makedirs(STORAGE_PATH, exist_ok=True)
-    webview.start(debug="--debug" in sys.argv, storage_path=STORAGE_PATH)
+    webview.start(debug="--debug" in sys.argv)
 
 
 if __name__ == "__main__":

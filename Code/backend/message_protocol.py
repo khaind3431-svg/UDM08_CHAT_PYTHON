@@ -8,7 +8,6 @@ class RoutedMessage:
 
 
 class MessageRouter:
-    # Khop voi protocol text ma Client GUI hien tai dang gui.
     SUPPORTED_TYPES = {
         "LOGIN",
         "REGISTER",
@@ -17,8 +16,8 @@ class MessageRouter:
         "PRIVATE",
         "REPLY",
         "FORWARD",
+        "IMAGE",
         "LOGOUT",
-        # --- Ket ban ---
         "ADDFRIEND",
         "FRIEND_RESP",
         "FRIENDLIST",
@@ -26,11 +25,8 @@ class MessageRouter:
         "GETINFO"
     }
 
-    # FRIENDLIST va FRIENDREQUESTS khong can noi dung (chi username dang
-    # dang nhap la du de server tra loi), nen khong nam trong danh sach
-    # bat buoc co content ben duoi.
     _REQUIRES_CONTENT = {
-        "LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD",
+        "LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD", "IMAGE",
         "ADDFRIEND", "FRIEND_RESP", "GETINFO",
     }
 
@@ -45,13 +41,9 @@ class MessageRouter:
         content = parts[1].strip() if len(parts) == 2 else ""
 
         if message_type not in self.SUPPORTED_TYPES:
-            raise ValueError(
-                f"Loai thong diep khong ho tro: {message_type}"
-            )
+            raise ValueError(f"Loai thong diep khong ho tro: {message_type}")
 
         if message_type in self._REQUIRES_CONTENT and not content:
-            raise ValueError(
-                f"{message_type} yeu cau noi dung."
-            )
+            raise ValueError(f"{message_type} yeu cau noi dung.")
 
         return RoutedMessage(message_type, content)

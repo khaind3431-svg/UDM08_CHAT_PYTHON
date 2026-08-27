@@ -10,6 +10,7 @@ import socket
 from Code.backend.services.chat_service import (
     get_message_brief, get_or_create_private_conversation, save_message,
 )
+from Code.backend.services.media_service import MediaError, save_image
 from Code.backend.utils.server_logger import log
 from Code.config.server_config import ENCODING
 
@@ -32,6 +33,8 @@ class ChatController:
             self._handle_reply(content, username, client_socket)
         elif msg_type == "FORWARD":
             self._handle_forward(content, username, client_socket)
+        elif msg_type == "IMAGE":
+            self._handle_image(content, username, client_socket)
 
     # ------------------------------------------------------------------
 
@@ -101,6 +104,43 @@ class ChatController:
             log(f"[FORWARD] {username} -> {target_username}: #{message_id}")
         else:
             self._send(client_socket, f"ERROR|Nguoi dung {target_username} khong online.")
+
+    def _handle_image(self, content: str, username: str,
+                      client_socket: socket.socket) -> None:
+        """Nhan IMAGE|target|filename|mime|base64 va chuyen anh toi client."""
+        parts = content.split("|", 3)
+        if len(parts) != 4:
+            self._send(client_socket, "ERROR|IMAGE sai dinh dang.")
+            return
+
+        target, file_name, mime_type, data_base64 = parts
+        target = target.strip()
+        try:
+            media = save_image(file_name, mime_type, data_base64)
+        except MediaError as error:
+            self._send(client_socket, f"ERROR|{error}")
+            return
+
+        packet = (
+            f"IMAGE|{username}|{target}|{media['file_name']}|"
+            f"{media['mime_type']}|{data_base64}"
+        )
+
+        if target == "__broadcast__":
+            for sock in self.client_manager.get_all_clients():
+                self._send_safe(sock, packet)
+            log(f"[IMAGE] {username} -> tat ca: {media['file_name']}")
+            return
+
+        receiver_socket = self.client_manager.get_client(target)
+        if receiver_socket is None:
+            self._send(client_socket, f"ERROR|Nguoi dung {target} khong online.")
+            return
+
+        self._send_safe(receiver_socket, packet)
+        if receiver_socket is not client_socket:
+            self._send_safe(client_socket, packet)
+        log(f"[IMAGE] {username} -> {target}: {media['file_name']}")
 
     # ------------------------------------------------------------------
 
