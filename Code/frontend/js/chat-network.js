@@ -1,10 +1,8 @@
 (function () {
-  const BROADCAST_TARGET = '__broadcast__';
-
   window.ChatNetwork.whenApiReady((api) => {
     const state = {
       username: null,
-      currentTarget: BROADCAST_TARGET,
+      currentTarget: null,
       onlineUsers: [],
       pendingReplyId: null,
       pendingForwardId: null,
@@ -14,13 +12,11 @@
 
     const elements = {
       currentUsername: document.getElementById('current-username'),
-      onlineCount: document.getElementById('online-count'),
-      onlineUsersList: document.getElementById('online-users-list'),
       friendsList: document.getElementById('friends-list'),
       friendsCount: document.getElementById('friends-count'),
-      broadcastItem: document.querySelector('.contact-item[data-target="__broadcast__"]'),
       chatHeaderName: document.querySelector('.chat-header .identity .name'),
       chatHeaderStatus: document.querySelector('.chat-header .identity .status'),
+      chatHeaderAvatar: document.querySelector('.chat-header > .avatar'),
       messageScroll: document.getElementById('message-scroll'),
       composerInput: document.getElementById('composer-input'),
       sendBtn: document.getElementById('send-btn'),
@@ -63,9 +59,7 @@
 
       if (elements.currentUsername) elements.currentUsername.textContent = state.username || 'Bạn';
 
-      renderOnlineList();
-      selectTarget(BROADCAST_TARGET);
-      bindBroadcastItem();
+      renderEmptyState();
       bindComposer();
       bindImageUpload();
       bindReplyCancel();
@@ -78,39 +72,10 @@
       api.get_friend_list();
     }
 
-    function renderOnlineList() {
-      if (!elements.onlineUsersList) return;
-      elements.onlineUsersList.innerHTML = '';
-
-      const others = state.onlineUsers.filter((u) => u !== state.username);
-      if (elements.onlineCount) elements.onlineCount.textContent = String(others.length);
-
-      others.forEach((username) => {
-        const item = document.createElement('div');
-        item.className = 'contact-item';
-        item.dataset.target = username;
-        if (username === state.currentTarget) item.classList.add('active');
-
-        const initials = username.slice(0, 2).toUpperCase();
-        item.innerHTML = `
-          <span class="avatar status" style="width:46px;height:46px">${initials}</span>
-          <div class="meta">
-            <div class="row-top"><span class="name">${escapeHtml(username)}</span></div>
-            <div class="preview">Nhấn để nhắn riêng</div>
-          </div>
-          <button class="info-btn" data-action="view-profile" aria-label="Xem thông tin">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-          </button>`;
-        item.addEventListener('click', () => selectTarget(username));
-        const infoBtn = item.querySelector('[data-action="view-profile"]');
-        if (infoBtn) {
-          infoBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            openProfile(username);
-          });
-        }
-        elements.onlineUsersList.appendChild(item);
-      });
+    function renderEmptyState() {
+      if (elements.chatHeaderName) elements.chatHeaderName.textContent = 'Chọn một người bạn để trò chuyện';
+      if (elements.chatHeaderStatus) elements.chatHeaderStatus.innerHTML = '&nbsp;';
+      if (elements.messageScroll) elements.messageScroll.innerHTML = '';
     }
 
     function renderFriendsList() {
@@ -157,12 +122,6 @@
       });
     }
 
-    function bindBroadcastItem() {
-      if (elements.broadcastItem) {
-        elements.broadcastItem.addEventListener('click', () => selectTarget(BROADCAST_TARGET));
-      }
-    }
-
     function selectTarget(target) {
       state.currentTarget = target;
 
@@ -170,13 +129,16 @@
         item.classList.toggle('active', item.dataset.target === target);
       });
 
-      if (elements.chatHeaderName) {
-        elements.chatHeaderName.textContent = target === BROADCAST_TARGET ? 'Tất cả mọi người' : target;
-      }
+      const isOnline = state.onlineUsers.includes(target);
+      if (elements.chatHeaderName) elements.chatHeaderName.textContent = target;
       if (elements.chatHeaderStatus) {
-        elements.chatHeaderStatus.innerHTML = target === BROADCAST_TARGET
-          ? 'Tin nhắn gửi tới mọi người đang online'
-          : '<span class="dot"></span>Đang nhắn riêng';
+        elements.chatHeaderStatus.innerHTML = isOnline
+          ? '<span class="dot"></span>Đang hoạt động'
+          : 'Ngoại tuyến';
+      }
+      if (elements.chatHeaderAvatar) {
+        elements.chatHeaderAvatar.textContent = target.slice(0, 2).toUpperCase();
+        elements.chatHeaderAvatar.classList.toggle('offline', !isOnline);
       }
 
       if (elements.messageScroll) elements.messageScroll.innerHTML = '';
@@ -197,15 +159,13 @@
 
     function sendCurrentInput() {
       const input = elements.composerInput;
-      if (!input) return;
+      if (!input || !state.currentTarget) return;
       const content = input.value.trim();
       if (!content) return;
 
       if (state.pendingReplyId !== null) {
         api.send_reply(state.pendingReplyId, content);
         cancelReply();
-      } else if (state.currentTarget === BROADCAST_TARGET) {
-        api.send_message(content);
       } else {
         api.send_private(state.currentTarget, content);
       }
@@ -218,7 +178,7 @@
       elements.imageInput.addEventListener('change', () => {
         const file = elements.imageInput.files && elements.imageInput.files[0];
         elements.imageInput.value = '';
-        if (!file) return;
+        if (!file || !state.currentTarget) return;
         const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowed.includes(file.type)) {
           appendSystemLine('Lỗi: Chỉ chọn ảnh JPG, PNG, GIF hoặc WEBP.');
@@ -241,16 +201,9 @@
       });
     }
 
-    window.addEventListener('chat:MESSAGE', (event) => {
-      const [sender, content] = event.detail;
-      if (sender === 'SYSTEM') {
-        if (state.currentTarget === BROADCAST_TARGET) appendSystemLine(content);
-        return;
-      }
-      if (state.currentTarget === BROADCAST_TARGET) {
-        appendBubble({ sender, content, isOwn: sender === state.username, messageId: null });
-      }
-    });
+    // Ghi chu: khong con lang nghe chat:MESSAGE (kenh broadcast) nua vi
+    // da bo phong chat chung. Thong bao SYSTEM (ai vao/roi phong) tu
+    // server gui qua kenh nay gio khong co noi nao de hien, nen bo qua.
 
     window.addEventListener('chat:PRIVATE', (event) => {
       const [sender, rawContent, rawId] = event.detail;
@@ -269,8 +222,12 @@
     });
 
     window.addEventListener('chat:REPLY', (event) => {
+      // Luu y: backend hien REPLY dang gui toi TAT CA nguoi dang online
+      // (khong rieng tu that su), day la gioi han thiet ke da co tu
+      // truoc. De tranh hien nham vao cuoc chat khong lien quan, chi
+      // hien khi nguoi gui la chinh minh hoac la nguoi dang mo chat cung.
       const [sender, content, , originalSender, originalSnippet] = event.detail;
-      if (state.currentTarget !== BROADCAST_TARGET) return;
+      if (sender !== state.username && sender !== state.currentTarget) return;
       appendBubble({
         sender,
         content,
@@ -283,17 +240,19 @@
     window.addEventListener('chat:IMAGE', (event) => {
       const [sender, target, fileName, mimeType, dataBase64] = event.detail;
       const isOwn = sender === state.username;
-      const belongsHere = target === BROADCAST_TARGET
-        ? state.currentTarget === BROADCAST_TARGET
-        : (isOwn ? state.currentTarget === target : state.currentTarget === sender);
+      const belongsHere = isOwn ? state.currentTarget === target : state.currentTarget === sender;
       if (belongsHere) appendImageBubble({ sender, fileName, mimeType, dataBase64, isOwn });
     });
 
     window.addEventListener('chat:ONLINE', (event) => {
       const [csv] = event.detail;
       state.onlineUsers = csv ? csv.split(',').filter(Boolean) : [];
-      renderOnlineList();
       renderFriendsList();
+      if (state.currentTarget) {
+        // Cap nhat lai cham trang thai tren header neu dang mo dung
+        // nguoi vua doi trang thai online/offline.
+        selectTarget(state.currentTarget);
+      }
     });
 
     window.addEventListener('chat:ERROR', (event) => {
@@ -372,6 +331,9 @@
       const [csv] = event.detail;
       state.friends = csv ? csv.split(',').filter(Boolean) : [];
       renderFriendsList();
+      if (!state.currentTarget && state.friends.length > 0) {
+        selectTarget(state.friends[0]);
+      }
     });
 
     function appendBubble({ sender, content, isOwn, messageId, replyTo }) {

@@ -48,29 +48,14 @@
       <div id="friend-add-status" class="friend-add-status"></div>
     </div>
 
-    <    <div class="contact-list">
+    <div class="contact-list">
       <div class="list-label">Bạn bè (<span id="friends-count">0</span>)</div>
 
-      <!-- Danh sach ban be that (ca online lan offline), duoc
-           chat-network.js render tu du lieu FRIENDLIST ma server gui ve. -->
+      <!-- Danh sach ban be duy nhat (gom ca dang online lan offline),
+           moi nguoi tu hien cham trang thai ben canh ten trong chinh
+           renderFriendsList() - khong con tach rieng khoi "dang hoat
+           dong" hay phong chat chung nua. -->
       <div id="friends-list"></div>
-
-      <div class="list-label">Đang hoạt động (<span id="online-count">3</span>)</div>
-
-      <!-- Danh sach nay duoc chat-network.js render dong tu du lieu
-           ONLINE|user1,user2 that ma server gui ve, khong con la du
-           lieu mau tinh nhu truoc. -->
-      <div id="online-users-list"></div>
-
-      <div class="contact-item active" data-target="__broadcast__">
-        <span class="avatar status" style="width:46px;height:46px">📢</span>
-        <div class="meta">
-          <div class="row-top">
-            <span class="name">Tất cả mọi người</span>
-          </div>
-          <div class="preview">Gửi tin nhắn cho cả nhóm</div>
-        </div>
-      </div>
     </div>
 
     <div class="sidebar-footer">
@@ -88,10 +73,10 @@
   <!-- ============ CHAT PANEL ============ -->
   <main class="chat-panel">
     <header class="chat-header">
-      <span class="avatar status" style="width:42px;height:42px">HN</span>
+      <span class="avatar status offline" style="width:42px;height:42px">?</span>
       <div class="identity">
-        <div class="name">Hoài Nam</div>
-        <div class="status"><span class="dot"></span>Đang hoạt động</div>
+        <div class="name">Chọn một người bạn để trò chuyện</div>
+        <div class="status">&nbsp;</div>
       </div>
       <div class="spacer"></div>
       <div class="actions">
