@@ -489,7 +489,7 @@
 .friend-add-status {
   font-size: 12px;
   min-height: 14px;
-  padding: 0 2px;
+  padding: 6px 2px 0;
 }
 .friend-add-status.ok { color: var(--online, #2e9e5b); }
 .friend-add-status.err { color: #e5484d; }

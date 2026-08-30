@@ -14,7 +14,6 @@
 <body>
 
 <div class="app-shell">
-
   <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar">
     <div class="sidebar-header">
@@ -23,6 +22,9 @@
         <div class="identity">
           <div class="name" id="current-username">Bạn</div>
         </div>
+        <button class="icon-btn" id="friend-add-open-btn" aria-label="Kết bạn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        </button>
         <button class="icon-btn" id="friend-requests-btn" aria-label="Lời mời kết bạn" style="position:relative">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span id="friend-requests-badge" class="req-badge" style="display:none">0</span>
@@ -38,14 +40,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input type="text" placeholder="Tìm liên hệ hoặc cuộc trò chuyện" />
       </div>
-
-      <div class="friend-add-wrap">
-        <input type="text" id="friend-add-input" placeholder="Kết bạn theo tên đăng nhập..." />
-        <button class="icon-btn" id="friend-add-btn" aria-label="Gửi lời mời kết bạn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-        </button>
-      </div>
-      <div id="friend-add-status" class="friend-add-status"></div>
     </div>
 
     <div class="contact-list">
@@ -196,6 +190,26 @@
 
     <div class="modal-actions">
       <button class="btn-ghost" id="friend-requests-close">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ADD FRIEND MODAL ============ -->
+<div class="modal-backdrop" id="friend-add-modal-backdrop" style="display:none">
+  <div class="forward-modal">
+    <h3>Thêm bạn</h3>
+    <p class="sub">Kết bạn theo tên đăng nhập</p>
+
+    <div class="friend-add-wrap">
+      <input type="text" id="friend-add-input" placeholder="Nhập tên đăng nhập..." />
+      <button class="icon-btn" id="friend-add-btn" aria-label="Gửi lời mời kết bạn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+    <div id="friend-add-status" class="friend-add-status"></div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" id="friend-add-close">Đóng</button>
     </div>
   </div>
 </div>

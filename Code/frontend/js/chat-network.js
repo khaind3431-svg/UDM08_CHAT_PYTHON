@@ -31,6 +31,9 @@
       forwardQuoted: document.getElementById('forward-quoted'),
       forwardConfirmBtn: document.getElementById('forward-confirm-btn'),
       // Ket ban + Profile
+      friendAddOpenBtn: document.getElementById('friend-add-open-btn'),
+      friendAddModal: document.getElementById('friend-add-modal-backdrop'),
+      friendAddClose: document.getElementById('friend-add-close'),
       friendAddInput: document.getElementById('friend-add-input'),
       friendAddBtn: document.getElementById('friend-add-btn'),
       friendAddStatus: document.getElementById('friend-add-status'),
@@ -492,8 +495,27 @@
       });
     }
 
-    // ---- Ket ban: gui loi moi tu o input nho trong sidebar ----
+    // ---- Ket ban: mo modal "Them ban" va gui loi moi ----
     function bindFriendAdd() {
+      if (elements.friendAddOpenBtn) {
+        elements.friendAddOpenBtn.addEventListener('click', () => {
+          if (elements.friendAddModal) elements.friendAddModal.style.display = 'flex';
+          if (elements.friendAddInput) {
+            elements.friendAddInput.value = '';
+            elements.friendAddInput.focus();
+          }
+          if (elements.friendAddStatus) {
+            elements.friendAddStatus.textContent = '';
+            elements.friendAddStatus.className = 'friend-add-status';
+          }
+        });
+      }
+      if (elements.friendAddClose) {
+        elements.friendAddClose.addEventListener('click', () => {
+          if (elements.friendAddModal) elements.friendAddModal.style.display = 'none';
+        });
+      }
+
       if (!elements.friendAddBtn || !elements.friendAddInput) return;
       const submit = () => {
         const target = elements.friendAddInput.value.trim();
@@ -514,6 +536,8 @@
         }
       });
     }
+
+// hàm showFriendAddStatus và toàn bộ phần còn lại phía dưới GIỮ NGUYÊN, không cần sửa
 
     function showFriendAddStatus(text, ok) {
       if (!elements.friendAddStatus) return;
