@@ -25,6 +25,9 @@ CREATE TABLE users (
     phone           TEXT UNIQUE,
     avatar_url      TEXT DEFAULT NULL,
     bio             TEXT DEFAULT NULL,
+    gender          TEXT DEFAULT NULL
+                    CHECK (gender IN ('male', 'female', 'other') OR gender IS NULL),
+    birthday        TEXT DEFAULT NULL,
     status          TEXT NOT NULL DEFAULT 'offline'
                     CHECK (status IN ('online', 'offline', 'away')),
     last_seen_at    TEXT DEFAULT NULL,
