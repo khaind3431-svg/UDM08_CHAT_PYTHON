@@ -167,6 +167,16 @@ class ChatApi:
 
     def get_friend_requests(self) -> dict:
         return self._send_raw("FRIENDREQUESTS")
+
+    def update_profile(self, full_name: str, bio: str, gender: str, birthday: str) -> dict:
+        full_name = (full_name or "").replace("|", "/").replace("\n", " ").replace("\r", " ")
+        bio = (bio or "").replace("|", "/").replace("\n", " ").replace("\r", " ")
+        gender = (gender or "").strip()
+        birthday = (birthday or "").strip()
+        return self._send_raw(f"UPDATEPROFILE|{full_name}|{bio}|{gender}|{birthday}")
+
+    def update_avatar(self, mime_type: str, data_base64: str) -> dict:
+        return self._send_raw(f"UPDATEAVATAR|{mime_type}|{data_base64}")
     # =============================================================
 
     def ping(self) -> dict:

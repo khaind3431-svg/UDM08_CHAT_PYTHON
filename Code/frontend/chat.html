@@ -18,8 +18,8 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="who">
-        <span class="avatar status" style="width:40px;height:40px;font-size:14px">CP</span>
-        <div class="identity">
+        <span class="avatar status" id="my-avatar" style="width:40px;height:40px;font-size:14px;cursor:pointer" title="Thông tin tài khoản">CP</span>
+        <div class="identity" id="my-identity-trigger" style="cursor:pointer" title="Thông tin tài khoản">
           <div class="name" id="current-username">Bạn</div>
         </div>
         <button class="icon-btn" id="friend-add-open-btn" aria-label="Kết bạn">
@@ -174,6 +174,17 @@
     <div class="profile-status" id="profile-status"><span class="dot"></span>—</div>
     <p class="profile-bio" id="profile-bio"></p>
 
+    <div class="profile-extra-info" id="profile-extra-info">
+      <div class="info-row">
+        <span class="info-label">Giới tính</span>
+        <span class="info-value" id="profile-gender">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Ngày sinh</span>
+        <span class="info-value" id="profile-birthday">—</span>
+      </div>
+    </div>
+
     <div class="modal-actions" id="profile-actions" style="justify-content:center"></div>
   </div>
 </div>
@@ -210,6 +221,68 @@
 
     <div class="modal-actions">
       <button class="btn-ghost" id="friend-add-close">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ACCOUNT EDIT MODAL (Cap nhat thong tin ca nhan) ============ -->
+<div class="modal-backdrop" id="account-edit-modal-backdrop" style="display:none">
+  <div class="forward-modal account-edit-modal">
+    <div class="account-edit-header">
+      <button class="icon-btn" id="account-edit-back-btn" aria-label="Quay lại">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h3>Cập nhật thông tin cá nhân</h3>
+      <button class="icon-btn" id="account-edit-close-btn" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="avatar-upload-wrap">
+      <div class="profile-avatar" id="account-edit-avatar">?</div>
+      <button type="button" class="avatar-camera-btn" id="account-avatar-camera-btn" aria-label="Đổi ảnh đại diện">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      </button>
+      <input type="file" id="account-avatar-input" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+    </div>
+    <div id="account-avatar-status" class="friend-add-status" style="text-align:center"></div>
+
+    <div class="field" style="margin-top:10px">
+      <label for="account-edit-fullname">Tên hiển thị</label>
+      <div class="input-wrap">
+        <input type="text" id="account-edit-fullname" maxlength="100" placeholder="Tên hiển thị" />
+      </div>
+    </div>
+
+    <div class="field account-gender-field">
+      <label>Thông tin cá nhân</label>
+      <div class="gender-options">
+        <label class="gender-option">
+          <input type="radio" name="account-gender" value="male" /> Nam
+        </label>
+        <label class="gender-option">
+          <input type="radio" name="account-gender" value="female" /> Nữ
+        </label>
+        <label class="gender-option">
+          <input type="radio" name="account-gender" value="other" /> Khác
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Ngày sinh</label>
+      <div class="birthday-selects">
+        <select id="account-edit-day"><option value="">Ngày</option></select>
+        <select id="account-edit-month"><option value="">Tháng</option></select>
+        <select id="account-edit-year"><option value="">Năm</option></select>
+      </div>
+    </div>
+
+    <div id="account-edit-status" class="friend-add-status"></div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" id="account-edit-cancel-btn">Hủy</button>
+      <button class="btn-primary" id="account-edit-save-btn">Cập nhật</button>
     </div>
   </div>
 </div>

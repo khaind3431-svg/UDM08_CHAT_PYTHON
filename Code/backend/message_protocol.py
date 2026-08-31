@@ -22,12 +22,14 @@ class MessageRouter:
         "FRIEND_RESP",
         "FRIENDLIST",
         "FRIENDREQUESTS",
-        "GETINFO"
+        "GETINFO",
+        "UPDATEPROFILE",
+        "UPDATEAVATAR",
     }
 
     _REQUIRES_CONTENT = {
         "LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD", "IMAGE",
-        "ADDFRIEND", "FRIEND_RESP", "GETINFO",
+        "ADDFRIEND", "FRIEND_RESP", "GETINFO", "UPDATEPROFILE", "UPDATEAVATAR",
     }
 
     def route(self, raw_message: str) -> RoutedMessage:

@@ -8,10 +8,16 @@
       pendingForwardId: null,
       pendingRequestCount: 0,
       friends: [],
+      ownProfile: null,
+      viewingProfileUsername: null,
+      savingProfile: false,
+      uploadingAvatar: false,
     };
 
     const elements = {
       currentUsername: document.getElementById('current-username'),
+      myAvatar: document.getElementById('my-avatar'),
+      myIdentityTrigger: document.getElementById('my-identity-trigger'),
       friendsList: document.getElementById('friends-list'),
       friendsCount: document.getElementById('friends-count'),
       chatHeaderName: document.querySelector('.chat-header .identity .name'),
@@ -51,6 +57,23 @@
       profileStatus: document.getElementById('profile-status'),
       profileBio: document.getElementById('profile-bio'),
       profileActions: document.getElementById('profile-actions'),
+      profileGender: document.getElementById('profile-gender'),
+      profileBirthday: document.getElementById('profile-birthday'),
+      // Cap nhat thong tin ca nhan (account edit)
+      accountEditModal: document.getElementById('account-edit-modal-backdrop'),
+      accountEditBackBtn: document.getElementById('account-edit-back-btn'),
+      accountEditCloseBtn: document.getElementById('account-edit-close-btn'),
+      accountEditCancelBtn: document.getElementById('account-edit-cancel-btn'),
+      accountEditSaveBtn: document.getElementById('account-edit-save-btn'),
+      accountEditAvatar: document.getElementById('account-edit-avatar'),
+      accountAvatarCameraBtn: document.getElementById('account-avatar-camera-btn'),
+      accountAvatarInput: document.getElementById('account-avatar-input'),
+      accountAvatarStatus: document.getElementById('account-avatar-status'),
+      accountEditFullname: document.getElementById('account-edit-fullname'),
+      accountEditDay: document.getElementById('account-edit-day'),
+      accountEditMonth: document.getElementById('account-edit-month'),
+      accountEditYear: document.getElementById('account-edit-year'),
+      accountEditStatus: document.getElementById('account-edit-status'),
     };
 
     init();
@@ -71,8 +94,14 @@
       bindFriendAdd();
       bindFriendRequestsPanel();
       bindProfileModal();
+      bindMyAvatarClick();
+      populateBirthdaySelects();
+      bindAccountEdit();
       api.get_friend_requests();
       api.get_friend_list();
+      // Lay ho so cua chinh minh de hien avatar/ten hien thi that tren
+      // sidebar (khong mo modal, chi cap nhat ngam).
+      if (state.username) api.get_user_info(state.username);
     }
 
     function renderEmptyState() {
@@ -269,8 +298,8 @@
     // ---- Ket ban + Profile: cac thong diep tu server ----
 
     window.addEventListener('chat:USERINFO', (event) => {
-      const [username, fullName, bio, status, friendStatus] = event.detail;
-      renderProfile({ username, fullName, bio, status, friendStatus });
+      const [username, fullName, bio, status, friendStatus, gender, birthday, avatarUrl] = event.detail;
+      renderProfile({ username, fullName, bio, status, friendStatus, gender, birthday, avatarUrl });
     });
 
     window.addEventListener('chat:FRIENDREQ_IN', (event) => {
@@ -537,8 +566,6 @@
       });
     }
 
-// hàm showFriendAddStatus và toàn bộ phần còn lại phía dưới GIỮ NGUYÊN, không cần sửa
-
     function showFriendAddStatus(text, ok) {
       if (!elements.friendAddStatus) return;
       elements.friendAddStatus.textContent = text;
@@ -627,10 +654,21 @@
       }
     }
 
+    // Bam vao avatar/ten cua chinh minh o dau sidebar -> mo "Thong tin
+    // tai khoan" (giong bam vao avatar goc tren trong Zalo).
+    function bindMyAvatarClick() {
+      const openMine = () => { if (state.username) openProfile(state.username); };
+      if (elements.myAvatar) elements.myAvatar.addEventListener('click', openMine);
+      if (elements.myIdentityTrigger) elements.myIdentityTrigger.addEventListener('click', openMine);
+    }
+
     function openProfile(username) {
+      state.viewingProfileUsername = username;
       if (elements.profileModal) elements.profileModal.style.display = 'flex';
       if (elements.profileFullname) elements.profileFullname.textContent = 'Đang tải...';
       if (elements.profileBio) elements.profileBio.textContent = '';
+      if (elements.profileGender) elements.profileGender.textContent = '—';
+      if (elements.profileBirthday) elements.profileBirthday.textContent = '—';
       if (elements.profileActions) elements.profileActions.innerHTML = '';
       api.get_user_info(username);
     }
@@ -641,13 +679,76 @@
       away: 'Vắng mặt',
     };
 
-    function renderProfile({ username, fullName, bio, status, friendStatus }) {
-      if (elements.profileModal) elements.profileModal.style.display = 'flex';
-      if (elements.profileAvatar) elements.profileAvatar.textContent = username.slice(0, 2).toUpperCase();
+    const GENDER_LABEL = { male: 'Nam', female: 'Nữ', other: 'Khác' };
+
+    // Hien anh dai dien that (avatarUrl la data-URI) neu co, nguoc lai
+    // hien chu cai dau ten (nhu cu).
+    function setAvatarVisual(el, avatarUrl, initials) {
+      if (!el) return;
+      if (avatarUrl) {
+        el.style.backgroundImage = `url(${avatarUrl})`;
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundPosition = 'center';
+        el.textContent = '';
+      } else {
+        el.style.backgroundImage = '';
+        el.textContent = initials || '';
+      }
+    }
+
+    function formatBirthdayDisplay(iso) {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      if (!y || !m || !d) return '';
+      return `${parseInt(d, 10)} tháng ${parseInt(m, 10)}, ${y}`;
+    }
+
+    // ---- Ho so cua CHINH minh: cap nhat avatar/ten tren sidebar, va
+    // xu ly ket qua sau khi luu tu form "Cap nhat thong tin" ----
+    function applyOwnIdentity(profile) {
+      state.ownProfile = profile;
+      const initials = (profile.fullName || state.username || '').slice(0, 2).toUpperCase();
+
+      if (elements.currentUsername) elements.currentUsername.textContent = profile.fullName || state.username;
+      setAvatarVisual(elements.myAvatar, profile.avatarUrl, initials);
+
+      if (state.savingProfile) {
+        state.savingProfile = false;
+        showAccountEditStatus('Đã cập nhật thông tin.', true);
+        setTimeout(() => {
+          closeAccountEdit();
+          if (elements.profileModal) elements.profileModal.style.display = 'flex';
+        }, 500);
+      }
+      if (state.uploadingAvatar) {
+        state.uploadingAvatar = false;
+        showAccountAvatarStatus('Đã cập nhật ảnh đại diện.', true);
+      }
+    }
+
+    function renderProfile({ username, fullName, bio, status, friendStatus, gender, birthday, avatarUrl }) {
+      if (username === state.username) {
+        applyOwnIdentity({ username, fullName, bio, gender, birthday, avatarUrl, status });
+      }
+
+      // Chi ve vao modal "xem ho so" neu day dung la nguoi dang duoc
+      // mo xem (tranh viec fetch ngam ho so ban than luc khoi dong lam
+      // bat ngo hien modal len).
+      if (state.viewingProfileUsername !== username) return;
+      if (!elements.profileModal || elements.profileModal.style.display !== 'flex') return;
+
+      const initials = username.slice(0, 2).toUpperCase();
+      setAvatarVisual(elements.profileAvatar, avatarUrl, initials);
       if (elements.profileFullname) elements.profileFullname.textContent = fullName || username;
       if (elements.profileUsername) elements.profileUsername.textContent = '@' + username;
       if (elements.profileBio) {
         elements.profileBio.textContent = bio || 'Người dùng này chưa có tiểu sử.';
+      }
+      if (elements.profileGender) {
+        elements.profileGender.textContent = GENDER_LABEL[gender] || 'Chưa cập nhật';
+      }
+      if (elements.profileBirthday) {
+        elements.profileBirthday.textContent = formatBirthdayDisplay(birthday) || 'Chưa cập nhật';
       }
       if (elements.profileStatus) {
         const isOnline = status === 'online';
@@ -671,7 +772,10 @@
       };
 
       if (friendStatus === 'self') {
-        return; // khong hien nut gi voi chinh minh
+        elements.profileActions.appendChild(
+          makeBtn('Cập nhật thông tin', 'btn-primary', () => openProfileEdit())
+        );
+        return;
       }
 
       if (friendStatus === 'friends') {
@@ -711,6 +815,157 @@
           api.add_friend(username);
         })
       );
+    }
+
+    // ---- Modal: cap nhat thong tin ca nhan ----
+    function populateBirthdaySelects() {
+      if (elements.accountEditDay && elements.accountEditDay.options.length <= 1) {
+        for (let day = 1; day <= 31; day++) {
+          const opt = document.createElement('option');
+          opt.value = String(day);
+          opt.textContent = String(day);
+          elements.accountEditDay.appendChild(opt);
+        }
+      }
+      if (elements.accountEditMonth && elements.accountEditMonth.options.length <= 1) {
+        for (let month = 1; month <= 12; month++) {
+          const opt = document.createElement('option');
+          opt.value = String(month);
+          opt.textContent = String(month);
+          elements.accountEditMonth.appendChild(opt);
+        }
+      }
+      if (elements.accountEditYear && elements.accountEditYear.options.length <= 1) {
+        const currentYear = new Date().getFullYear();
+        for (let year = currentYear; year >= currentYear - 100; year--) {
+          const opt = document.createElement('option');
+          opt.value = String(year);
+          opt.textContent = String(year);
+          elements.accountEditYear.appendChild(opt);
+        }
+      }
+    }
+
+    function bindAccountEdit() {
+      if (elements.accountAvatarCameraBtn && elements.accountAvatarInput) {
+        elements.accountAvatarCameraBtn.addEventListener('click', () => {
+          elements.accountAvatarInput.click();
+        });
+        elements.accountAvatarInput.addEventListener('change', () => {
+          const file = elements.accountAvatarInput.files && elements.accountAvatarInput.files[0];
+          elements.accountAvatarInput.value = '';
+          if (!file) return;
+
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+          if (!allowedTypes.includes(file.type)) {
+            showAccountAvatarStatus('Chỉ chọn ảnh JPG, PNG, GIF hoặc WEBP.', false);
+            return;
+          }
+          if (file.size > 300 * 1024) {
+            showAccountAvatarStatus('Ảnh đại diện không được vượt quá 300 KB.', false);
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = String(reader.result || '');
+            const commaIndex = result.indexOf(',');
+            if (commaIndex < 0) return;
+            const initials = (state.ownProfile && state.ownProfile.fullName || state.username || '').slice(0, 2).toUpperCase();
+            setAvatarVisual(elements.accountEditAvatar, result, initials);
+            state.uploadingAvatar = true;
+            showAccountAvatarStatus('Đang tải ảnh lên...', true);
+            api.update_avatar(file.type, result.slice(commaIndex + 1));
+          };
+          reader.onerror = () => showAccountAvatarStatus('Không đọc được ảnh.', false);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (elements.accountEditBackBtn) {
+        elements.accountEditBackBtn.addEventListener('click', () => {
+          closeAccountEdit();
+          if (elements.profileModal) elements.profileModal.style.display = 'flex';
+        });
+      }
+      if (elements.accountEditCloseBtn) {
+        elements.accountEditCloseBtn.addEventListener('click', closeAccountEdit);
+      }
+      if (elements.accountEditCancelBtn) {
+        elements.accountEditCancelBtn.addEventListener('click', closeAccountEdit);
+      }
+      if (elements.accountEditSaveBtn) {
+        elements.accountEditSaveBtn.addEventListener('click', submitAccountEdit);
+      }
+    }
+
+    function closeAccountEdit() {
+      if (elements.accountEditModal) elements.accountEditModal.style.display = 'none';
+    }
+
+    function openProfileEdit() {
+      const profile = state.ownProfile || {
+        fullName: state.username, gender: '', birthday: '', avatarUrl: '',
+      };
+
+      if (elements.profileModal) elements.profileModal.style.display = 'none';
+      if (elements.accountEditModal) elements.accountEditModal.style.display = 'flex';
+
+      if (elements.accountEditFullname) {
+        elements.accountEditFullname.value = profile.fullName || state.username;
+      }
+
+      document.querySelectorAll('input[name="account-gender"]').forEach((input) => {
+        input.checked = input.value === profile.gender;
+      });
+
+      const [y, m, d] = (profile.birthday || '').split('-');
+      if (elements.accountEditDay) elements.accountEditDay.value = d ? String(parseInt(d, 10)) : '';
+      if (elements.accountEditMonth) elements.accountEditMonth.value = m ? String(parseInt(m, 10)) : '';
+      if (elements.accountEditYear) elements.accountEditYear.value = y || '';
+
+      const initials = (profile.fullName || state.username || '').slice(0, 2).toUpperCase();
+      setAvatarVisual(elements.accountEditAvatar, profile.avatarUrl, initials);
+
+      if (elements.accountEditStatus) elements.accountEditStatus.textContent = '';
+      if (elements.accountAvatarStatus) elements.accountAvatarStatus.textContent = '';
+    }
+
+    function submitAccountEdit() {
+      const fullName = elements.accountEditFullname ? elements.accountEditFullname.value.trim() : '';
+      if (!fullName) {
+        showAccountEditStatus('Tên hiển thị không được để trống.', false);
+        return;
+      }
+
+      const genderInput = document.querySelector('input[name="account-gender"]:checked');
+      const gender = genderInput ? genderInput.value : '';
+
+      const day = elements.accountEditDay ? elements.accountEditDay.value : '';
+      const month = elements.accountEditMonth ? elements.accountEditMonth.value : '';
+      const year = elements.accountEditYear ? elements.accountEditYear.value : '';
+      let birthday = '';
+      if (day && month && year) {
+        birthday = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+
+      const bio = state.ownProfile ? (state.ownProfile.bio || '') : '';
+
+      state.savingProfile = true;
+      showAccountEditStatus('Đang lưu...', true);
+      api.update_profile(fullName, bio, gender, birthday);
+    }
+
+    function showAccountEditStatus(text, ok) {
+      if (!elements.accountEditStatus) return;
+      elements.accountEditStatus.textContent = text;
+      elements.accountEditStatus.className = 'friend-add-status ' + (ok ? 'ok' : 'err');
+    }
+
+    function showAccountAvatarStatus(text, ok) {
+      if (!elements.accountAvatarStatus) return;
+      elements.accountAvatarStatus.textContent = text;
+      elements.accountAvatarStatus.className = 'friend-add-status ' + (ok ? 'ok' : 'err');
     }
 
     function bindLogout() {
