@@ -1,4 +1,4 @@
-import socket
+﻿import socket
 import sys
 import threading
 from pathlib import Path
@@ -20,8 +20,8 @@ from Code.backend.core.client_handler import ClientHandler
 from Code.backend.core.client_manager import ClientManager
 from Code.backend.core.session_manager import OnlineManager
 from Code.backend.message_protocol import MessageRouter
-from Code.backend.services.broadcaster import Broadcaster
-from Code.backend.services.private_chat import PrivateChat
+from Code.backend.services.broadcast_service import Broadcaster
+from Code.backend.services.private_chat_service import PrivateChat
 from Code.backend.utils.server_logger import log
 from Code.config.server_config import (
     ACCEPT_TIMEOUT,
