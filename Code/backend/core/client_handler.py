@@ -8,9 +8,11 @@ Controller (AuthController / ChatController) xu ly nghiep vu.
 
 import socket
 import threading
+import traceback
 from typing import Optional
 
 from Code.backend.message_protocol import MessageRouter
+from Code.backend.utils.server_logger import log
 from Code.config.server_config import BUFFER_SIZE, ENCODING
 
 # Cac loai thong diep bat buoc phai LOGIN truoc moi duoc dung.
@@ -81,6 +83,16 @@ class ClientHandler:
         except OSError:
             if self.running.is_set():
                 raise
+        except Exception:
+            log(
+                f"Loi khong luong truoc o ket noi "
+                f"{self.address[0]}:{self.address[1]} "
+                f"(user: {self.username}):\n{traceback.format_exc()}"
+            )
+            self._send_safe(
+                self.socket,
+                "ERROR|Da xay ra loi khong mong muon o Server. Vui long thu lai.",
+            )
 
     def _handle_line(self, raw_message: str) -> bool:
         """Xu ly 1 dong da tach. Tra ve False de bao hieu ngung vong lap
@@ -93,9 +105,30 @@ class ClientHandler:
 
         msg_type = routed.message_type
 
+        try:
+            return self._dispatch(msg_type, routed.content)
+        except Exception:
+            # Bat moi loi phat sinh trong luc xu ly nghiep vu (controller,
+            # service, DB...) de KHONG lam thread cua client nay chet lang
+            # le. Client van duoc bao loi ro rang thay vi chi thay "mat
+            # ket noi" ma khong hieu vi sao.
+            log(
+                f"Loi khi xu ly {msg_type} tu user "
+                f"{self.username} ({self.address[0]}:{self.address[1]}):\n"
+                f"{traceback.format_exc()}"
+            )
+            self._send_safe(
+                self.socket,
+                f"ERROR|Khong the xu ly yeu cau {msg_type}. Vui long thu lai.",
+            )
+            return True
+
+    def _dispatch(self, msg_type: str, content: str) -> bool:
+        """Dieu huong 1 thong diep da duoc parse toi dung Controller.
+        Tra ve False chi khi la LOGOUT (bao hieu dung vong lap)."""
         if msg_type in {"LOGIN", "REGISTER"}:
             result_username = self.auth_controller.handle(
-                msg_type, routed.content, self.socket, self.address
+                msg_type, content, self.socket, self.address
             )
             if result_username is not None:
                 self.username = result_username
@@ -106,15 +139,15 @@ class ClientHandler:
             return True
 
         if msg_type in _CONTACT_TYPES:
-            self.contact_controller.handle(msg_type, routed.content, self.username, self.socket)
+            self.contact_controller.handle(msg_type, content, self.username, self.socket)
             return True
 
         if msg_type in _PROFILE_TYPES:
-            self.profile_controller.handle(msg_type, routed.content, self.username, self.socket)
+            self.profile_controller.handle(msg_type, content, self.username, self.socket)
             return True
 
         if msg_type in _REQUIRES_LOGIN:
-            self.chat_controller.handle(msg_type, routed.content, self.username, self.socket)
+            self.chat_controller.handle(msg_type, content, self.username, self.socket)
             return True
 
         if msg_type == "PING":
