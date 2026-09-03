@@ -55,10 +55,10 @@ class ChatApi:
         if self.connected:
             return {"ok": True}
         try:
-            self.sock = socket.create_connection((host, port), timeout=5)
+            self.sock = socket.create_connection((host, int(port)), timeout=5)
             self.sock.settimeout(None)
 
-        except OSError as error:
+        except (OSError, ValueError) as error:
             return {"ok": False, "error": f"Khong ket noi duoc toi server ({host}:{port}): {error}"}
 
         self.connected = True
@@ -110,15 +110,17 @@ class ChatApi:
             self.connected = False
             return {"ok": False, "error": str(error)}
 
-    def login(self, username: str, password: str) -> dict:
-        result = self.connect()
+    def login(self, username: str, password: str,
+              host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> dict:
+        result = self.connect(host, port)
         if not result["ok"]:
             return result
         self.username = username
         return self._send_raw(f"LOGIN|{username}|{password}")
 
-    def register(self, display_name: str, username: str, password: str, confirm: str) -> dict:
-        result = self.connect()
+    def register(self, display_name: str, username: str, password: str, confirm: str,
+                 host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> dict:
+        result = self.connect(host, port)
         if not result["ok"]:
             return result
         return self._send_raw(f"REGISTER|{display_name}|{username}|{password}|{confirm}")

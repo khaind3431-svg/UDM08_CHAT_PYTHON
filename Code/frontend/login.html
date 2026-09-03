@@ -72,6 +72,17 @@
         <p>Nhập tên đăng nhập và mật khẩu để tiếp tục.</p>
       </div>
 
+      <div class="field">
+        <label for="server-address" style="font-size:12.5px;color:var(--text-faint);display:block;margin-bottom:6px">
+          Server (IP:Port)
+        </label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg>
+          <input type="text" id="server-address" placeholder="127.0.0.1:5000" value="127.0.0.1:5000" autocomplete="off" />
+        </div>
+        <p id="server-status" style="font-size:12px;margin:6px 0 0;min-height:14px"></p>
+      </div>
+
       <!-- ===== LOGIN FORM ===== -->
       <form class="auth-form" id="form-login" style="display:flex">
         <div class="field">
