@@ -25,11 +25,13 @@ class MessageRouter:
         "GETINFO",
         "UPDATEPROFILE",
         "UPDATEAVATAR",
+        "GETHISTORY",
     }
 
     _REQUIRES_CONTENT = {
         "LOGIN", "REGISTER", "MESSAGE", "PRIVATE", "REPLY", "FORWARD", "IMAGE",
         "ADDFRIEND", "FRIEND_RESP", "GETINFO", "UPDATEPROFILE", "UPDATEAVATAR",
+        "GETHISTORY",
     }
 
     def route(self, raw_message: str) -> RoutedMessage:

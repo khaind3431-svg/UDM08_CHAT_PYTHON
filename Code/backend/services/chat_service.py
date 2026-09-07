@@ -50,3 +50,25 @@ def get_message_brief(message_id: int):
     if row is None:
         return None
     return {"id": row["id"], "content": row["content"], "sender_display": row["sender_display"]}
+
+
+def get_conversation_history(conversation_id: int, limit: int = 200) -> list:
+    with db_cursor() as cur:
+        cur.execute(
+            """SELECT m.id, u.username AS sender_username, m.content, m.created_at
+               FROM messages m
+               JOIN users u ON u.id = m.sender_id
+               WHERE m.conversation_id = ?
+               ORDER BY m.id ASC
+               LIMIT ?""",
+            (conversation_id, limit),
+        )
+        return [
+            {
+                "id": row["id"],
+                "sender": row["sender_username"],
+                "content": row["content"] or "",
+                "created_at": row["created_at"],
+            }
+            for row in cur.fetchall()
+        ]

@@ -179,6 +179,12 @@ class ChatApi:
 
     def update_avatar(self, mime_type: str, data_base64: str) -> dict:
         return self._send_raw(f"UPDATEAVATAR|{mime_type}|{data_base64}")
+
+    def get_history(self, target_username: str) -> dict:
+        target = (target_username or "").strip()
+        if not target:
+            return {"ok": False, "error": "Ten nguoi dung khong hop le."}
+        return self._send_raw(f"GETHISTORY|{target}")
     # =============================================================
 
     def ping(self) -> dict:

@@ -55,3 +55,10 @@ def set_user_status(user_id: int, status: str) -> None:
             "UPDATE users SET status = ?, last_seen_at = datetime('now') WHERE id = ?",
             (status, user_id),
         )
+
+
+def get_user_id_by_username(username: str):
+    with db_cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE username = ?", (username,))
+        row = cur.fetchone()
+    return row["id"] if row else None

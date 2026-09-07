@@ -7,8 +7,10 @@ reply/forward deu duoc luu vao database qua chat_service.
 
 import socket
 
+from Code.backend.services.auth_service import get_user_id_by_username
 from Code.backend.services.chat_service import (
-    get_message_brief, get_or_create_private_conversation, save_message,
+    get_conversation_history, get_message_brief,
+    get_or_create_private_conversation, save_message,
 )
 from Code.backend.services.media_service import MediaError, save_image
 from Code.backend.utils.server_logger import log
@@ -35,6 +37,8 @@ class ChatController:
             self._handle_forward(content, username, client_socket)
         elif msg_type == "IMAGE":
             self._handle_image(content, username, client_socket)
+        elif msg_type == "GETHISTORY":
+            self._handle_get_history(content, username, client_socket)
 
     # ------------------------------------------------------------------
 
@@ -49,8 +53,9 @@ class ChatController:
             self._send(client_socket, "ERROR|PRIVATE dung dang: PRIVATE|NguoiNhan|NoiDung")
             return
 
-        sender_id = self.get_user_id(username)
-        receiver_id = self.get_user_id(receiver)
+       
+        sender_id = get_user_id_by_username(username)
+        receiver_id = get_user_id_by_username(receiver)
         message_id = None
         if sender_id and receiver_id:
             conv_id = get_or_create_private_conversation(sender_id, receiver_id)
@@ -93,8 +98,8 @@ class ChatController:
             self._send(client_socket, "ERROR|Tin nhan goc khong ton tai.")
             return
 
-        sender_id = self.get_user_id(username)
-        target_id = self.get_user_id(target_username)
+        sender_id = get_user_id_by_username(username)
+        target_id = get_user_id_by_username(target_username)
         if sender_id and target_id:
             conv_id = get_or_create_private_conversation(sender_id, target_id)
             save_message(conv_id, sender_id, original["content"],
@@ -142,7 +147,36 @@ class ChatController:
             self._send_safe(client_socket, packet)
         log(f"[IMAGE] {username} -> {target}: {media['file_name']}")
 
+    def _handle_get_history(self, content: str, username: str,
+                             client_socket: socket.socket) -> None:
+        target = content.strip()
+        if not target:
+            self._send(client_socket, "ERROR|GETHISTORY yeu cau ten nguoi dung.")
+            return
+
+        sender_id = get_user_id_by_username(username)
+        target_id = get_user_id_by_username(target)
+        if sender_id is None or target_id is None:
+            self._send(client_socket, f"ERROR|Nguoi dung {target} khong ton tai.")
+            return
+
+        conv_id = get_or_create_private_conversation(sender_id, target_id)
+        history = get_conversation_history(conv_id)
+
+        for message in history:
+            content_safe = self._sanitize(message["content"])
+            self._send(
+                client_socket,
+                f"HISTORY|{target}|{message['sender']}|{content_safe}|"
+                f"{message['id']}|{message['created_at']}",
+            )
+        self._send(client_socket, f"HISTORY_END|{target}")
+
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _sanitize(text: str) -> str:
+        return (text or "").replace("|", "/").replace("\n", " ").replace("\r", " ")
 
     @staticmethod
     def _parse_pair(content: str):
