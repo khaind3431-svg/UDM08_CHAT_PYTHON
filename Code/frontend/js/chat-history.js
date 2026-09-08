@@ -8,9 +8,7 @@
     myUsername = session.username;
   });
 
-  // Doc "ai la nguoi dang mo chat cung" truc tiep tu chinh giao dien
-  // (chat-network.js da tu render san ten nguoi do vao day) - tranh
-  // phai tu luu 1 bien state rieng co the bi lech voi ban chinh.
+ 
   function currentOpenTarget() {
     const nameEl = document.querySelector('.chat-header .identity .name');
     if (!nameEl) return null;
@@ -19,9 +17,7 @@
     return text;
   }
 
-  // Bam vao 1 nguoi trong danh sach ban be (o sidebar) -> xin lai lich
-  // su tin nhan cu cua cuoc tro chuyen do. Dùng event delegation nen
-  // hoat dong dung voi ca nhung item duoc ve lai sau nay.
+ 
   document.addEventListener('click', (event) => {
     const item = event.target.closest('#friends-list .contact-item[data-target]');
     if (!item || !api) return;
@@ -34,9 +30,7 @@
     return div.innerHTML;
   }
 
-  // created_at tu SQLite luu dang "YYYY-MM-DD HH:MM:SS" theo gio UTC
-  // (mac dinh cua ham datetime('now')) - doi sang gio dia phuong nguoi
-  // xem de hien dung nhu tin nhan gui truc tiep.
+  
   function formatHistoryTime(createdAt) {
     if (!createdAt) return '';
     const isoLike = createdAt.replace(' ', 'T') + 'Z';
@@ -72,9 +66,6 @@
 
   window.addEventListener('chat:HISTORY', (event) => {
     const [target, sender, content, , createdAt] = event.detail;
-    // Chi ve neu day dung la cuoc tro chuyen dang mo NGAY LUC NAY -
-    // tranh hien nham tin nhan cu cua 1 nguoi khac neu nguoi dung bam
-    // chuyen qua lai nhanh giua nhieu ban be truoc khi phan hoi ve kip.
     if (currentOpenTarget() !== target) return;
     appendHistoryBubble(sender, content, formatHistoryTime(createdAt));
   });
