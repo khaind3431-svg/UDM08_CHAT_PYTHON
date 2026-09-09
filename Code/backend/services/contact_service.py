@@ -12,16 +12,36 @@ def _get_user_id(cur, username: str):
     return row["id"] if row else None
 
 
-def send_friend_request(from_username: str, to_username: str) -> dict:
-    if from_username == to_username:
-        return {"ok": False, "error": "Ban khong the tu ket ban voi chinh minh."}
+def _resolve_target_user(cur, query: str):
+    cur.execute("SELECT id, username FROM users WHERE username = ?", (query,))
+    row = cur.fetchone()
+    if row:
+        return row["id"], row["username"], None
 
+    cur.execute("SELECT id, username FROM users WHERE full_name = ? COLLATE NOCASE", (query,))
+    rows = cur.fetchall()
+    if len(rows) == 1:
+        return rows[0]["id"], rows[0]["username"], None
+    if len(rows) > 1:
+        return None, None, "ambiguous"
+    return None, None, None
+
+
+def send_friend_request(from_username: str, to_query: str) -> dict:
     with db_cursor() as cur:
         from_id = _get_user_id(cur, from_username)
-        to_id = _get_user_id(cur, to_username)
+        to_id, to_username, resolve_error = _resolve_target_user(cur, to_query)
 
+        if resolve_error == "ambiguous":
+            return {
+                "ok": False,
+                "error": f"Co nhieu nguoi dung ten hien thi '{to_query}'. "
+                         f"Vui long nhap dung ten dang nhap (username) de ket ban chinh xac.",
+            }
         if from_id is None or to_id is None:
-            return {"ok": False, "error": f"Nguoi dung {to_username} khong ton tai."}
+            return {"ok": False, "error": f"Nguoi dung {to_query} khong ton tai."}
+        if from_id == to_id:
+            return {"ok": False, "error": "Ban khong the tu ket ban voi chinh minh."}
 
         cur.execute(
             """SELECT id, user_id, contact_id, status FROM contacts

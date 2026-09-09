@@ -32,6 +32,7 @@ CHAT_PAGE = str(FRONTEND_DIR / "chat.html")
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5000
 ENCODING = "utf-8"
+RECV_TIMEOUT = 30.0
 
 
 class ChatApi:
@@ -56,7 +57,7 @@ class ChatApi:
             return {"ok": True}
         try:
             self.sock = socket.create_connection((host, int(port)), timeout=5)
-            self.sock.settimeout(None)
+            self.sock.settimeout(RECV_TIMEOUT)
 
         except (OSError, ValueError) as error:
             return {"ok": False, "error": f"Khong ket noi duoc toi server ({host}:{port}): {error}"}
@@ -71,6 +72,8 @@ class ChatApi:
         while self.connected and sock is not None:
             try:
                 data = sock.recv(4096)
+            except socket.timeout:
+                continue
             except OSError:
                 break
             if not data:
