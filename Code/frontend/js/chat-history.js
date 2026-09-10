@@ -8,7 +8,6 @@
     myUsername = session.username;
   });
 
- 
   function currentOpenTarget() {
     const nameEl = document.querySelector('.chat-header .identity .name');
     if (!nameEl) return null;
@@ -17,7 +16,6 @@
     return text;
   }
 
- 
   document.addEventListener('click', (event) => {
     const item = event.target.closest('#friends-list .contact-item[data-target]');
     if (!item || !api) return;
@@ -30,7 +28,6 @@
     return div.innerHTML;
   }
 
-  
   function formatHistoryTime(createdAt) {
     if (!createdAt) return '';
     const isoLike = createdAt.replace(' ', 'T') + 'Z';
@@ -39,7 +36,7 @@
     return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
   }
 
-  function appendHistoryBubble(sender, content, timeText) {
+  function appendHistoryBubble(sender, content, timeText, messageType, mediaName) {
     const messageScroll = document.getElementById('message-scroll');
     if (!messageScroll) return;
     const isOwn = sender === myUsername;
@@ -51,12 +48,16 @@
       `<span class="avatar" style="width:30px;height:30px;font-size:11px">${sender.slice(0, 2).toUpperCase()}</span>`;
     const senderNameHtml = isOwn ? '' : `<span class="sender-name">${escapeHtml(sender)}</span>`;
 
+    const bubbleInner = messageType === 'image'
+      ? `📷 <em>[Hình ảnh: ${escapeHtml(mediaName || 'không rõ tên')}]</em>`
+      : escapeHtml(content);
+
     row.innerHTML = `
       ${avatarHtml}
       <div class="msg-col">
         ${senderNameHtml}
         <div class="bubble-wrap">
-          <div class="bubble">${escapeHtml(content)}</div>
+          <div class="bubble">${bubbleInner}</div>
         </div>
         <span class="msg-meta">${timeText}</span>
       </div>`;
@@ -65,9 +66,9 @@
   }
 
   window.addEventListener('chat:HISTORY', (event) => {
-    const [target, sender, content, , createdAt] = event.detail;
+    const [target, sender, content, , createdAt, messageType, mediaName] = event.detail;
     if (currentOpenTarget() !== target) return;
-    appendHistoryBubble(sender, content, formatHistoryTime(createdAt));
+    appendHistoryBubble(sender, content, formatHistoryTime(createdAt), messageType, mediaName);
   });
 
   window.addEventListener('chat:HISTORY_END', (event) => {

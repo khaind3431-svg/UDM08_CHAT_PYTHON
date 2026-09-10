@@ -56,32 +56,19 @@ CREATE TABLE conversations (
     name            TEXT DEFAULT NULL,
     avatar_url      TEXT DEFAULT NULL,
 
-    -- CHAT RIÊNG 1-1:
-    -- Lưu đúng 2 user theo thứ tự nhỏ -> lớn để tránh
-    -- tạo nhiều conversation cho cùng một cặp người dùng.
-    private_user_1  INTEGER DEFAULT NULL,
-    private_user_2  INTEGER DEFAULT NULL,
-
     created_by      INTEGER NOT NULL,
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
 
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (private_user_1) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (private_user_2) REFERENCES users(id) ON DELETE CASCADE,
-
-    CHECK (
-        (type = 'private'
-         AND private_user_1 IS NOT NULL
-         AND private_user_2 IS NOT NULL
-         AND private_user_1 < private_user_2
-         AND name IS NULL)
-        OR
-        (type = 'group'
-         AND private_user_1 IS NULL
-         AND private_user_2 IS NULL)
-    )
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_conversations_type ON conversations(type);
+CREATE TRIGGER trg_conversations_updated_at
+AFTER UPDATE ON conversations
+BEGIN
+    UPDATE conversations SET updated_at = datetime('now') WHERE id = NEW.id;
+END;
 
 CREATE INDEX idx_conversations_type ON conversations(type);
 

@@ -9,7 +9,7 @@ import socket
 
 from Code.backend.services.auth_service import get_user_id_by_username
 from Code.backend.services.chat_service import (
-    get_conversation_history, get_message_brief,
+    get_conversation_history, get_conversation_participants, get_message_brief,
     get_or_create_private_conversation, save_message,
 )
 from Code.backend.services.media_service import MediaError, save_image
@@ -53,7 +53,6 @@ class ChatController:
             self._send(client_socket, "ERROR|PRIVATE dung dang: PRIVATE|NguoiNhan|NoiDung")
             return
 
-       
         sender_id = get_user_id_by_username(username)
         receiver_id = get_user_id_by_username(receiver)
         message_id = None
@@ -78,13 +77,25 @@ class ChatController:
             return
 
         original = get_message_brief(reply_to_id)
-        who = original["sender_display"] if original else ""
-        snippet = original["content"] if original else ""
-
-        log(f"[REPLY] {username} -> #{reply_to_id}: {reply_content}")
-        packet = f"REPLY|{username}|{reply_content}|{reply_to_id}|{who}|{snippet}"
-        for sock in self.client_manager.get_all_clients():
-            self._send_safe(sock, packet)
+        if original is None:
+            self._send(client_socket, "ERROR|Tin nhan goc khong ton tai.")
+            return
+        who = original["sender_display"]
+        snippet = original["content"]
+        conv_id = original["conversation_id"]
+        sender_id = get_user_id_by_username(username)
+        message_id = None
+        if sender_id:
+            message_id = save_message(conv_id, sender_id, reply_content,
+                                       reply_to_message_id=reply_to_id)
+        id_part = message_id if message_id is not None else 0
+        packet = f"REPLY|{username}|{reply_content}|{id_part}|{who}|{snippet}"
+        participants = get_conversation_participants(conv_id)
+        for target_username in participants:
+            sock = self.client_manager.get_client(target_username)
+            if sock is not None:
+                self._send_safe(sock, packet)
+        log(f"[REPLY] {username} -> #{reply_to_id} (conv {conv_id}): {reply_content}")
 
     def _handle_forward(self, content: str, username: str,
                          client_socket: socket.socket) -> None:
@@ -137,9 +148,18 @@ class ChatController:
             log(f"[IMAGE] {username} -> tat ca: {media['file_name']}")
             return
 
+        sender_id = get_user_id_by_username(username)
+        receiver_id = get_user_id_by_username(target)
+        if sender_id and receiver_id:
+            conv_id = get_or_create_private_conversation(sender_id, receiver_id)
+            save_message(conv_id, sender_id, message_type="image",
+                         media_url=media["stored_name"], media_name=media["file_name"],
+                         media_size=media["size"])
+
         receiver_socket = self.client_manager.get_client(target)
         if receiver_socket is None:
-            self._send(client_socket, f"ERROR|Nguoi dung {target} khong online.")
+            self._send(client_socket, f"INFO|Da luu anh, {target} se thay khi online lai.")
+            log(f"[IMAGE] {username} -> {target} (offline, da luu DB): {media['file_name']}")
             return
 
         self._send_safe(receiver_socket, packet)
@@ -165,10 +185,12 @@ class ChatController:
 
         for message in history:
             content_safe = self._sanitize(message["content"])
+            media_name_safe = self._sanitize(message["media_name"] or "")
             self._send(
                 client_socket,
                 f"HISTORY|{target}|{message['sender']}|{content_safe}|"
-                f"{message['id']}|{message['created_at']}",
+                f"{message['id']}|{message['created_at']}|"
+                f"{message['message_type']}|{media_name_safe}",
             )
         self._send(client_socket, f"HISTORY_END|{target}")
 
