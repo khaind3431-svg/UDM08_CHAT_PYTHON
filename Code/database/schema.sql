@@ -21,8 +21,6 @@ CREATE TABLE users (
     username        TEXT NOT NULL UNIQUE,
     password_hash   TEXT NOT NULL,
     full_name       TEXT NOT NULL,
-    email           TEXT UNIQUE,
-    phone           TEXT UNIQUE,
     avatar_url      TEXT DEFAULT NULL,
     bio             TEXT DEFAULT NULL,
     gender          TEXT DEFAULT NULL
@@ -64,18 +62,12 @@ CREATE TABLE conversations (
 );
 
 CREATE INDEX idx_conversations_type ON conversations(type);
-CREATE TRIGGER trg_conversations_updated_at
-AFTER UPDATE ON conversations
-BEGIN
-    UPDATE conversations SET updated_at = datetime('now') WHERE id = NEW.id;
-END;
 
-CREATE INDEX idx_conversations_type ON conversations(type);
-
--- Mỗi cặp user chỉ có 1 cuộc trò chuyện riêng.
-CREATE UNIQUE INDEX idx_private_conversation_pair
-    ON conversations(private_user_1, private_user_2)
-    WHERE type = 'private';
+-- Ghi chu: cap user cho 1 cuoc tro chuyen 'private' duoc xac dinh
+-- qua bang conversation_members (2 dong voi cung conversation_id),
+-- xem chat_service.get_or_create_private_conversation(). Rang buoc
+-- "moi cap user chi co 1 cuoc tro chuyen rieng" duoc dam bao o tang
+-- ung dung (Python), khong phai o tang DB.
 
 CREATE TRIGGER trg_conversations_updated_at
 AFTER UPDATE ON conversations
@@ -91,16 +83,10 @@ CREATE TABLE conversation_members (
     id                      INTEGER PRIMARY KEY AUTOINCREMENT,
     conversation_id         INTEGER NOT NULL,
     user_id                 INTEGER NOT NULL,
-    role                    TEXT NOT NULL DEFAULT 'member'
-                            CHECK (role IN ('member', 'admin')),
-    nickname                TEXT DEFAULT NULL,
-    is_muted                INTEGER NOT NULL DEFAULT 0,
     joined_at               TEXT NOT NULL DEFAULT (datetime('now')),
-    last_read_message_id    INTEGER DEFAULT NULL,
 
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (last_read_message_id) REFERENCES messages(id) ON DELETE SET NULL,
     UNIQUE (conversation_id, user_id)
 );
 
@@ -125,8 +111,6 @@ CREATE TABLE messages (
     reply_to_message_id         INTEGER DEFAULT NULL,
     forward_from_message_id     INTEGER DEFAULT NULL,
 
-    is_edited                   INTEGER NOT NULL DEFAULT 0,
-    is_deleted                  INTEGER NOT NULL DEFAULT 0,
     created_at                  TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at                  TEXT NOT NULL DEFAULT (datetime('now')),
 
@@ -147,27 +131,36 @@ END;
 
 
 -- ============================================================
--- 5. MESSAGE_STATUS - Trạng thái gửi/nhận/đọc theo từng user
+-- 5. CONTACTS - Danh bạ / kết bạn / chặn
 -- ============================================================
-CREATE TABLE message_status (
+CREATE TABLE contacts (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    message_id      INTEGER NOT NULL,
     user_id         INTEGER NOT NULL,
-    status          TEXT NOT NULL DEFAULT 'sent'
-                    CHECK (status IN ('sent', 'delivered', 'read')),
+    contact_id      INTEGER NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'accepted', 'blocked', 'rejected')),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
 
-    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE (message_id, user_id)
+    FOREIGN KEY (contact_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (user_id, contact_id),
+    CHECK (user_id <> contact_id)
 );
 
-CREATE INDEX idx_status_user ON message_status(user_id, status);
+CREATE INDEX idx_contacts_status ON contacts(status);
 
-CREATE TRIGGER trg_message_status_updated_at
-AFTER UPDATE ON message_status
+-- Không cho cùng một cặp user tạo quan hệ A->B và B->A trùng nhau.
+CREATE UNIQUE INDEX idx_contacts_unique_pair
+    ON contacts(
+        MIN(user_id, contact_id),
+        MAX(user_id, contact_id)
+    );
+
+CREATE TRIGGER trg_contacts_updated_at
+AFTER UPDATE ON contacts
 BEGIN
-    UPDATE message_status SET updated_at = datetime('now') WHERE id = NEW.id;
+    UPDATE contacts SET updated_at = datetime('now') WHERE id = NEW.id;
 END;
 
 
