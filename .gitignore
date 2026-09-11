@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Du lieu du an cu the (UDM08 Chat TCP) - KHONG duoc day len GitHub:
+# chua username/password-hash that cua thanh vien nhom + anh chat that.
+# Dung file Code/database/schema.sql de tao lai chat.db moi khi can.
+Code/database/chat.db
+Code/database/chat.db-journal
+Code/database/chat.db-wal
+Code/database/chat.db-shm
+Code/uploads/
