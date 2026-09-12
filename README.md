@@ -12,11 +12,11 @@
 | Họ và tên | MSSV | Tài khoản GitHub | Phụ trách chính |
 |---|---|---|---|
 | _Phan Triều Cường_ | _(034205002849)_ | PhanTrieuCuong123 | Xác thực (đăng ký/đặng nhập), GUI, avatar, IP/Port, sửa lỗi tổng hợp xuyên suốt dự án |
-| _(điền)_ | _(điền)_ | phantantai08 | Database (schema, ERD, seed data), giao thức, migration hồ sơ người dùng |
-| _(điền)_ | _(điền)_ | Nguyen Duc Khai | Server core ban đầu, tổ chức lại cấu trúc thư mục dự án, README |
-| _(điền)_ | _(điền)_ | seward1812 | `client_manager.py` / `client_handler.py` (quản lý kết nối client) |
-| _(điền)_ | _(điền)_ | hienminhhonguyen | Module chat riêng (private chat), test tự động, tài liệu deploy, tính năng gửi ảnh |
-| _(điền)_ | _(điền)_ | Nguyễn Võ Tấn Phát | Code phía client theo cấu trúc dự án chung, hoàn thiện tính năng kết bạn |
+| _Phan Tấn Tài_ | _(082206015321)_ | phantantai08 | Database (schema, ERD, seed data), giao thức, migration hồ sơ người dùng |
+| _Nguyễn Đức Khải_ | _(075206003431)_ | Nguyen Duc Khai | Server core ban đầu, tổ chức lại cấu trúc thư mục dự án, README |
+| _Trần Thanh Hải_ | _(077205001506)_ | seward1812 | `client_manager.py` / `client_handler.py` (quản lý kết nối client) |
+| _Nguyễn Hồ Minh Hiển_ | _(083206009387)_ | hienminhhonguyen | Module chat riêng (private chat), test tự động, tài liệu deploy, tính năng gửi ảnh |
+| _Nguyễn Võ Tấn Phát_ | _(082206004751)_ | Nguyễn Võ Tấn Phát | Code phía client theo cấu trúc dự án chung, hoàn thiện tính năng kết bạn |
 
 ## Công nghệ sử dụng
 
