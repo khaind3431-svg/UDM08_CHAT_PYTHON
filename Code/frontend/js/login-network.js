@@ -4,13 +4,20 @@
     const loginError = document.getElementById('login-error');
     const loginSubmitBtn = document.getElementById('login-submit');
     const registerForm = document.getElementById('form-register');
+    const registerError = document.getElementById('register-error');
     const serverAddressInput = document.getElementById('server-address');
     const serverStatus = document.getElementById('server-status');
 
-    function showError(message) {
+    function showLoginError(message) {
       if (!loginError) return;
       loginError.textContent = message || '';
       loginError.style.display = message ? 'block' : 'none';
+    }
+
+    function showRegisterError(message) {
+      if (!registerError) return;
+      registerError.textContent = message || '';
+      registerError.style.display = message ? 'block' : 'none';
     }
 
     function setSubmitting(isSubmitting) {
@@ -57,8 +64,13 @@
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
 
-        if (!username || !password) {
-          showError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.');
+    
+        if (!username) {
+          showLoginError('Vui lòng nhập tên đăng nhập.');
+          return;
+        }
+        if (!password) {
+          showLoginError('Vui lòng nhập mật khẩu.');
           return;
         }
 
@@ -68,14 +80,14 @@
           return;
         }
 
-        showError('');
+        showLoginError('');
         showServerStatus(`Đang kết nối tới ${server.host}:${server.port}...`, 'connecting');
         setSubmitting(true);
         api.login(username, password, server.host, server.port).then((result) => {
           if (!result.ok) {
             setSubmitting(false);
             showServerStatus('', '');
-            showError(result.error);
+            showLoginError(result.error);
           } else {
             showServerStatus('Đã kết nối, đang đăng nhập...', 'connecting');
           }
@@ -91,8 +103,30 @@
         const password = document.getElementById('register-password').value;
         const confirm = document.getElementById('register-confirm').value;
 
-        if (!displayName || !username || !password || !confirm) {
-          showError('Vui lòng nhập đầy đủ thông tin đăng ký.');
+        
+        if (!displayName) {
+          showRegisterError('Vui lòng nhập tên hiển thị.');
+          return;
+        }
+        if (!username) {
+          showRegisterError('Vui lòng nhập tên đăng nhập.');
+          return;
+        }
+        if (!password) {
+          showRegisterError('Vui lòng nhập mật khẩu.');
+          return;
+        }
+        if (!confirm) {
+          showRegisterError('Vui lòng nhập lại mật khẩu để xác nhận.');
+          return;
+        }
+        
+        if (password.length < 6) {
+          showRegisterError('Mật khẩu phải từ 6 ký tự trở lên.');
+          return;
+        }
+        if (password !== confirm) {
+          showRegisterError('Mật khẩu nhập lại không khớp.');
           return;
         }
 
@@ -102,11 +136,11 @@
           return;
         }
 
-        showError('');
+        showRegisterError('');
         showServerStatus(`Đang kết nối tới ${server.host}:${server.port}...`, 'connecting');
         api.register(displayName, username, password, confirm, server.host, server.port).then((result) => {
           showServerStatus('', '');
-          if (!result.ok) showError(result.error);
+          if (!result.ok) showRegisterError(result.error);
         });
       });
     }
@@ -120,11 +154,11 @@
     window.addEventListener('chat:LOGIN_ERR', (event) => {
       setSubmitting(false);
       showServerStatus('', '');
-      showError(event.detail.join('|'));
+      showLoginError(event.detail.join('|'));
     });
 
     window.addEventListener('chat:REGISTER_OK', () => {
-      showError('');
+      showRegisterError('');
       const loginTab = document.querySelector('.auth-tabs button[data-target="form-login"]');
       if (loginTab) loginTab.click();
       alert('Đăng ký thành công! Hãy đăng nhập.');
@@ -132,13 +166,20 @@
 
     window.addEventListener('chat:REGISTER_ERR', (event) => {
       showServerStatus('', '');
-      showError(event.detail.join('|'));
+      showRegisterError(event.detail.join('|'));
     });
 
     window.addEventListener('chat:disconnected', () => {
       setSubmitting(false);
       showServerStatus('', '');
-      showError('Mất kết nối tới server. Kiểm tra lại địa chỉ Server và server đã chạy chưa.');
+      const message = 'Mất kết nối tới server. Kiểm tra lại địa chỉ Server và server đã chạy chưa.';
+      const registerTabActive = document.getElementById('form-register')
+        && document.getElementById('form-register').style.display !== 'none';
+      if (registerTabActive) {
+        showRegisterError(message);
+      } else {
+        showLoginError(message);
+      }
     });
   });
 })();
