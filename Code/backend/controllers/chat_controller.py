@@ -111,15 +111,26 @@ class ChatController:
 
         sender_id = get_user_id_by_username(username)
         target_id = get_user_id_by_username(target_username)
-        if sender_id and target_id:
-            conv_id = get_or_create_private_conversation(sender_id, target_id)
-            save_message(conv_id, sender_id, original["content"],
-                         forward_from_message_id=message_id)
+        if sender_id is None or target_id is None:
+            self._send(client_socket, f"ERROR|Nguoi dung {target_username} khong ton tai.")
+            return
 
-        if self.private_chat.send_private(username, target_username, original["content"]):
-            log(f"[FORWARD] {username} -> {target_username}: #{message_id}")
-        else:
-            self._send(client_socket, f"ERROR|Nguoi dung {target_username} khong online.")
+        conv_id = get_or_create_private_conversation(sender_id, target_id)
+        new_message_id = save_message(conv_id, sender_id, original["content"],
+                                       forward_from_message_id=message_id)
+        original_sender = original["sender_display"]
+        packet = f"FORWARD|{username}|{original['content']}|{new_message_id}|{original_sender}"
+
+        receiver_socket = self.client_manager.get_client(target_username)
+        if receiver_socket is None:
+            
+            self._send(client_socket,
+                       f"INFO|Da luu tin chuyen tiep, {target_username} se thay khi online lai.")
+            log(f"[FORWARD] {username} -> {target_username} (offline, da luu DB): #{message_id}")
+            return
+
+        self._send_safe(receiver_socket, packet)
+        log(f"[FORWARD] {username} -> {target_username}: #{message_id}")
 
     def _handle_image(self, content: str, username: str,
                       client_socket: socket.socket) -> None:

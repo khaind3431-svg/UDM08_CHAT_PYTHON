@@ -20,6 +20,14 @@
     });
   });
 
+  const goToRegisterBtn = document.getElementById('go-to-register');
+  if (goToRegisterBtn) {
+    goToRegisterBtn.addEventListener('click', () => {
+      const registerTab = document.querySelector('.auth-tabs button[data-target="form-register"]');
+      if (registerTab) registerTab.click();
+    });
+  }
+
   // ---- Emoji picker (chat.html) ----
   const emojiBtn = document.querySelector('[data-action="toggle-emoji"]');
   const emojiPicker = document.querySelector('.emoji-picker');

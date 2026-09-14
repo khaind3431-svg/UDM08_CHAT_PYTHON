@@ -8,6 +8,12 @@
     const serverAddressInput = document.getElementById('server-address');
     const serverStatus = document.getElementById('server-status');
 
+    // Moi form (dang nhap / dang ky) co the loi rieng, KHONG dung
+    // chung 1 the bao loi nua - truoc day #login-error nam trong
+    // form-login nen khi dang o tab Dang ky, form-login bi an
+    // (display:none) keo theo the loi cung an theo, du JS van gan
+    // dung noi dung vao do. Nguoi dung dang ky sai KHONG THAY duoc
+    // loi gi ca (vi du "Ten dang nhap da ton tai." tu server tra ve).
     function showLoginError(message) {
       if (!loginError) return;
       loginError.textContent = message || '';
@@ -64,7 +70,8 @@
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
 
-    
+        // Kiem tra tung o rieng, bao dung loi thieu o nao thay vi
+        // 1 cau chung chung "vui long nhap day du".
         if (!username) {
           showLoginError('Vui lòng nhập tên đăng nhập.');
           return;
@@ -103,7 +110,8 @@
         const password = document.getElementById('register-password').value;
         const confirm = document.getElementById('register-confirm').value;
 
-        
+        // Validate tung o rieng biet, theo dung thu tu cac o tren
+        // form, thay vi 1 thong bao chung chung khong ro thieu cho nao.
         if (!displayName) {
           showRegisterError('Vui lòng nhập tên hiển thị.');
           return;
@@ -120,7 +128,10 @@
           showRegisterError('Vui lòng nhập lại mật khẩu để xác nhận.');
           return;
         }
-        
+        // Kiem tra truoc o client cho phan hoi tuc thi, KHONG doi
+        // round-trip len server moi biet - server (auth_service.py)
+        // van kiem tra lai lan nua nen khong mat an toan du client
+        // co bi bypass.
         if (password.length < 6) {
           showRegisterError('Mật khẩu phải từ 6 ký tự trở lên.');
           return;
@@ -154,6 +165,9 @@
     window.addEventListener('chat:LOGIN_ERR', (event) => {
       setSubmitting(false);
       showServerStatus('', '');
+      // Server tra ve thong bao cu the: "Tai khoan khong ton tai.",
+      // "Sai mat khau.", "Tai khoan da bi khoa." - hien nguyen van,
+      // khong can dich lai o day.
       showLoginError(event.detail.join('|'));
     });
 
@@ -166,6 +180,9 @@
 
     window.addEventListener('chat:REGISTER_ERR', (event) => {
       showServerStatus('', '');
+      // Vi du: "Ten dang nhap da ton tai.", "Mat khau nhap lai khong
+      // khop.", "Mat khau phai tu 6 ky tu." - gio da hien duoc dung
+      // vao #register-error thay vi bi an mat nhu truoc.
       showRegisterError(event.detail.join('|'));
     });
 
@@ -173,6 +190,7 @@
       setSubmitting(false);
       showServerStatus('', '');
       const message = 'Mất kết nối tới server. Kiểm tra lại địa chỉ Server và server đã chạy chưa.';
+      // Bao loi vao dung form dang mo, khong chi bao cung 1 cho.
       const registerTabActive = document.getElementById('form-register')
         && document.getElementById('form-register').style.display !== 'none';
       if (registerTabActive) {

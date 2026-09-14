@@ -12,6 +12,14 @@
       viewingProfileUsername: null,
       savingProfile: false,
       uploadingAvatar: false,
+      // Ten nhung nguoi co tin nhan rieng CHUA XEM (nhan luc khong
+      // dang mo dung cua so chat voi ho - vi du bi Forward toi ma
+      // dang xem doan chat khac), kem so tin chua doc. UI da co san
+      // class "unread" va ".unread-badge" (dang pill hien so, xem
+      // ui-interactions.js phan xoa badge khi bam vao contact),
+      // nhung truoc day KHONG CO CHO NAO THEM badge vao ca - nen
+      // tin nhan bi lo di ma nguoi dung khong biet gi.
+      unreadFrom: new Map(),
     };
 
     const elements = {
@@ -126,17 +134,20 @@
 
       state.friends.forEach((username) => {
         const isOnline = state.onlineUsers.includes(username);
+        const unreadCount = state.unreadFrom.get(username) || 0;
         const item = document.createElement('div');
-        item.className = 'contact-item';
+        item.className = 'contact-item' + (unreadCount > 0 ? ' unread' : '');
         item.dataset.target = username;
         if (username === state.currentTarget) item.classList.add('active');
 
         const initials = username.slice(0, 2).toUpperCase();
         const statusClass = isOnline ? 'avatar status' : 'avatar status offline';
+        const badgeHtml = unreadCount > 0
+          ? `<span class="unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>` : '';
         item.innerHTML = `
           <span class="${statusClass}" style="width:46px;height:46px">${initials}</span>
           <div class="meta">
-            <div class="row-top"><span class="name">${escapeHtml(username)}</span></div>
+            <div class="row-top"><span class="name">${escapeHtml(username)}</span>${badgeHtml}</div>
             <div class="preview">${isOnline ? 'Đang hoạt động' : 'Ngoại tuyến'}</div>
           </div>
           <button class="info-btn" data-action="view-profile" aria-label="Xem thông tin">
@@ -156,6 +167,12 @@
 
     function selectTarget(target) {
       state.currentTarget = target;
+      // Da mo dung cua so chat voi nguoi nay - xoa danh dau "chua
+      // xem" cua ho va ve lai sidebar cho mat badge di.
+      if (state.unreadFrom.has(target)) {
+        state.unreadFrom.delete(target);
+        renderFriendsList();
+      }
 
       document.querySelectorAll('.sidebar .contact-item').forEach((item) => {
         item.classList.toggle('active', item.dataset.target === target);
@@ -250,6 +267,15 @@
         }
       } else if (state.currentTarget === sender) {
         appendBubble({ sender, content: rawContent, isOwn: false, messageId });
+      } else {
+        // Tin nhan rieng tu nguoi KHONG phai dang mo chat cung (vi
+        // du bi Forward toi trong luc dang xem doan chat khac).
+        // Truoc day bi bo qua hoan toan, khong bao hieu gi ca - danh
+        // dau "chua xem" de nguoi dung con biet ma bam vao xem.
+        if (state.friends.includes(sender)) {
+          state.unreadFrom.set(sender, (state.unreadFrom.get(sender) || 0) + 1);
+          renderFriendsList();
+        }
       }
     });
 
@@ -267,6 +293,28 @@
         messageId: null,
         replyTo: { name: originalSender, snippet: originalSnippet },
       });
+    });
+
+    window.addEventListener('chat:FORWARD', (event) => {
+      // FORWARD|nguoi_chuyen_tiep|noi_dung|message_id|nguoi_gui_goc
+      const [forwarder, forwardContent, rawId, originalSender] = event.detail;
+      const messageId = rawId && rawId !== '0' ? rawId : null;
+
+      if (state.currentTarget === forwarder) {
+        appendBubble({
+          sender: forwarder,
+          content: forwardContent,
+          isOwn: false,
+          messageId,
+          forwardFrom: originalSender,
+        });
+      } else if (state.friends.includes(forwarder)) {
+        // Chua mo dung cua so chat voi nguoi vua chuyen tiep - danh
+        // dau "chua xem" giong het tin PRIVATE binh thuong, tranh
+        // tin bi lo di ma khong bao hieu gi.
+        state.unreadFrom.set(forwarder, (state.unreadFrom.get(forwarder) || 0) + 1);
+        renderFriendsList();
+      }
     });
 
     window.addEventListener('chat:IMAGE', (event) => {
@@ -368,7 +416,7 @@
       }
     });
 
-    function appendBubble({ sender, content, isOwn, messageId, replyTo }) {
+    function appendBubble({ sender, content, isOwn, messageId, replyTo, forwardFrom }) {
       if (!elements.messageScroll) return;
 
       const row = document.createElement('div');
@@ -387,6 +435,14 @@
           </div>
         </div>` : '';
 
+      // Nhan nho bao day la tin CHUYEN TIEP, kem ten nguoi gui GOC -
+      // truoc day tin chuyen tiep hien y het tin thuong, nguoi nhan
+      // khong biet day la cua ai chuyen tiep toi.
+      const forwardLabelHtml = forwardFrom ? `
+        <div class="forward-label" style="font-size:11.5px;color:var(--text-faint);display:flex;align-items:center;gap:4px;margin-bottom:2px">
+          <span>↪</span><span>Đã chuyển tiếp từ ${escapeHtml(forwardFrom)}</span>
+        </div>` : '';
+
       const actionsHtml = messageId ? `
         <div class="msg-actions">
           <button data-action="reply" aria-label="Trả lời">↩</button>
@@ -397,6 +453,7 @@
         ${avatarHtml}
         <div class="msg-col">
           ${senderNameHtml}
+          ${forwardLabelHtml}
           ${replyPreviewHtml}
           <div class="bubble-wrap">
             <div class="bubble">${escapeHtml(content)}</div>
@@ -404,6 +461,7 @@
           </div>
           <span class="msg-meta">${formatTime()}</span>
         </div>`;
+
 
       if (messageId) {
         const replyBtn = row.querySelector('[data-action="reply"]');
