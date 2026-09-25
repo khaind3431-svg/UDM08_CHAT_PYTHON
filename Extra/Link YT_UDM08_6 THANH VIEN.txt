@@ -1,0 +1,8 @@
+VIDEO THUYẾT TRÌNH DỰ ÁN UDM08
+
+Đề tài: Wireline Chat - Python TCP Socket
+
+Link YouTube:
+https://www.youtube.com/watch?v=8gXFxROtzbE
+
+Vui lòng mở link trên để xem video thuyết trình và demo dự án.
